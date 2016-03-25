@@ -5,7 +5,10 @@ authors = ["Luminarys <postmaster@gensok.io>"]
 
 [dependencies]
 hyper = "~0.7.2"
-concurrent-hashmap = { git = "https://github.com/Luminarys/rust-concurrent-hashmap.git", rev = "299dc06" }
+concurrent-hashmap = { git = "https://github.com/veddan/rust-concurrent-hashmap.git" }
 bip_bencode = "~0.1.2"
 time = "~0.1"
 url = "~0.5.5"
+
+[profile.dev]
+debug = true

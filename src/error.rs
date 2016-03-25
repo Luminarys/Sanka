@@ -1,8 +1,8 @@
 use response::TrackerResponse;
 use std::num::ParseIntError;
-//use std::error::Error;
-//use std::fmt::Display;
-//use std::fmt;
+// use std::error::Error;
+// use std::fmt::Display;
+// use std::fmt;
 
 #[derive(Debug)]
 pub enum ErrorResponse {
@@ -18,12 +18,12 @@ impl TrackerResponse for ErrorResponse {
                 ben_map!{
                     "failure reason" => ben_bytes!("Improper authentication.")
                 }
-            },
+            }
             ErrorResponse::BadRequest => {
                 ben_map!{
                     "failure reason" => ben_bytes!("Improper request.")
                 }
-            },
+            }
             ErrorResponse::BadAction => {
                 ben_map!{
                     "failure reason" => ben_bytes!("Improper action.")
@@ -34,7 +34,7 @@ impl TrackerResponse for ErrorResponse {
     }
 }
 
-//impl Display for ErrorResponse {
+// impl Display for ErrorResponse {
 //    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 //        match *self {
 //            ErrorResponse::BadAction => write!(f, "Improper action."),
@@ -42,9 +42,9 @@ impl TrackerResponse for ErrorResponse {
 //            ErrorResponse::BadRequest => write!(f, "Improper request."),
 //        }
 //    }
-//}
+// }
 //
-//impl Error for ErrorResponse {
+// impl Error for ErrorResponse {
 //    fn description(&self) -> &str {
 //        match *self {
 //            ErrorResponse::BadAction => "Improper action.",
@@ -52,7 +52,7 @@ impl TrackerResponse for ErrorResponse {
 //            ErrorResponse::BadRequest => "Improper request.",
 //        }
 //    }
-//}
+// }
 
 impl From<ParseIntError> for ErrorResponse {
     fn from(_err: ParseIntError) -> ErrorResponse {

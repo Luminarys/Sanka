@@ -1,5 +1,6 @@
 use response::TrackerResponse;
 use std::net::{SocketAddrV4, SocketAddrV6};
+use torrent::{Stats, Peers};
 
 pub struct Announce {
     pub info_hash: String,
@@ -22,15 +23,20 @@ pub enum Action {
 }
 
 pub struct AnnounceResponse {
-    pub peers: Vec<u8>,
-    pub peers6: Vec<u8>,
+    pub stats: Stats,
+    pub peers: Peers,
 }
 
 impl TrackerResponse for AnnounceResponse {
     fn to_bencode(&self) -> Vec<u8> {
         let resp = ben_map!{
-            "peers" => ben_bytes!(&self.peers),
-            "peers6" => ben_bytes!(&self.peers6)
+            "peers" => ben_bytes!(&self.peers.peers4),
+            "peers6" => ben_bytes!(&self.peers.peers6),
+            "interval" => ben_int!(1800),
+            "min interval" => ben_int!(900),
+            "complete" => ben_int!(self.stats.complete),
+            "downloaded" => ben_int!(self.stats.downloaded),
+            "incomplete" => ben_int!(self.stats.incomplete)
         };
         resp.encode()
     }

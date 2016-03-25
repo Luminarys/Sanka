@@ -7,7 +7,7 @@ pub struct Peer {
     uploaded: u64,
     downloaded: u64,
     left: u64,
-    last_action: SteadyTime,
+    pub last_action: SteadyTime,
     pub ipv4: Option<SocketAddrV4>,
     pub ipv6: Option<SocketAddrV6>,
 }
@@ -29,16 +29,28 @@ impl Peer {
             left: a.left,
             ipv4: a.ipv4,
             ipv6: a.ipv6,
-            last_action: SteadyTime::now()
+            last_action: SteadyTime::now(),
         }
     }
 
     pub fn update(&mut self, a: &Announce) -> Delta {
         let d = Delta {
             peer_id: self.id.clone(),
-            upload: if a.ul > self.uploaded { a.ul - self.uploaded } else { 0 },
-            download: if a.dl > self.downloaded { a.dl - self.downloaded } else { 0 },
-            left: if self.left > a.left { self.left - a.left } else { 0 },
+            upload: if a.ul > self.uploaded {
+                a.ul - self.uploaded
+            } else {
+                0
+            },
+            download: if a.dl > self.downloaded {
+                a.dl - self.downloaded
+            } else {
+                0
+            },
+            left: if self.left > a.left {
+                self.left - a.left
+            } else {
+                0
+            },
         };
         self.uploaded = a.ul;
         self.downloaded = a.dl;
