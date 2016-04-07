@@ -2,6 +2,7 @@ use tracker::Tracker;
 use response::TrackerResponse;
 use error::ErrorResponse;
 use announce::{Action, Announce};
+use scrape::Scrape;
 
 use hyper::server::{Request, Response, Handler};
 use hyper::uri::RequestUri::AbsolutePath;
@@ -25,10 +26,17 @@ impl Handler for RequestHandler {
                         let param_vec = form_urlencoded::parse(param_str.as_bytes());
                         match action {
                             "/announce?" => {
-                                let announce = (request_to_announce(&req, param_vec)).unwrap();
-                                self.tracker.handle_announce(announce)
+                                match request_to_announce(&req, param_vec) {
+                                    Ok(announce) => self.tracker.handle_announce(announce),
+                                    Err(e) => Err(e),
+                                }
                             }
-                            "/scrape?" => self.tracker.handle_scrape(param_vec),
+                            "/scrape?" => {
+                                match request_to_scrape(param_vec) {
+                                    Ok(scrape) => self.tracker.handle_scrape(scrape),
+                                    Err(e) => Err(e),
+                                }
+                            }
                             _ => Err(ErrorResponse::BadAction),
                         }
                     }
@@ -41,8 +49,16 @@ impl Handler for RequestHandler {
     }
 }
 
-fn request_to_announce(req: &Request, param_vec: Vec<(String, String)>) -> Result<Announce, ErrorResponse>
-{
+fn request_to_scrape(param_vec: Vec<(String, String)>) -> Result<Scrape, ErrorResponse> {
+    let hashes = param_vec.into_iter()
+        .map(|(_, hash)| hash)
+        .collect();
+    Ok(Scrape::new(hashes))
+}
+
+fn request_to_announce(req: &Request,
+                       param_vec: Vec<(String, String)>)
+                       -> Result<Announce, ErrorResponse> {
     let mut params = HashMap::new();
     for (key, val) in param_vec {
         params.insert(key, val);

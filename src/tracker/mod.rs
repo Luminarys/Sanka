@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use error::ErrorResponse;
 use success::SuccessResponse;
 use announce::{AnnounceResponse, Announce};
-use scrape::ScrapeResponse;
+use scrape::{ScrapeResponse, Scrape};
 use stats::Stats;
 use time::SteadyTime;
 use time::Duration;
@@ -32,12 +32,16 @@ impl Tracker {
             Some(ref mut accessor) => {
                 let mut t = accessor.get();
                 let delta = t.update(&announce);
-                (delta, t.get_stats(), t.get_peers(announce.numwant, announce.action))
+                (delta,
+                 t.get_stats(),
+                 t.get_peers(announce.numwant, announce.action))
             }
             None => {
                 let mut t = Torrent::new(announce.info_hash.clone());
                 let delta = t.update(&announce);
-                let resp = (delta, t.get_stats(), t.get_peers(announce.numwant, announce.action));
+                let resp = (delta,
+                            t.get_stats(),
+                            t.get_peers(announce.numwant, announce.action));
                 self.torrents.insert(announce.info_hash, t);
                 resp
             }
@@ -49,11 +53,9 @@ impl Tracker {
         }))
     }
 
-    pub fn handle_scrape(&self,
-                         params: Vec<(String, String)>)
-                         -> Result<SuccessResponse, ErrorResponse> {
+    pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {
         let mut torrents = HashMap::new();
-        for (_, hash) in params {
+        for hash in scrape.torrents {
             match self.torrents.find(&hash) {
                 Some(ref accessor) => {
                     let t = accessor.get();

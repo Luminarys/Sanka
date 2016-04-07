@@ -4,6 +4,16 @@ use std::collections::{BTreeMap, HashMap};
 use bip_bencode::Bencode;
 use std::convert::AsRef;
 
+pub struct Scrape {
+    pub torrents: Vec<String>
+}
+
+impl Scrape {
+    pub fn new(torrents: Vec<String>) -> Scrape {
+        Scrape { torrents: torrents }
+    }
+}
+
 #[derive(Debug)]
 pub struct ScrapeResponse {
     pub torrents: HashMap<String, Stats>,
