@@ -61,3 +61,14 @@ impl Peer {
         d
     }
 }
+
+impl Delta {
+    pub fn new(peer_id: String) -> Delta {
+        Delta {
+            peer_id: peer_id,
+            upload: 0,
+            download: 0,
+            left: 0,
+        }
+    }
+}

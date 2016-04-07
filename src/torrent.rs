@@ -43,46 +43,22 @@ impl Torrent {
                 if self.seeders.contains_key(&a.peer_id) {
                     match self.seeders.get_mut(&a.peer_id) {
                         Some(peer) => peer.update(&a),
-                        None => {
-                            Delta {
-                                peer_id: a.peer_id.clone(),
-                                upload: 0,
-                                download: 0,
-                                left: 0,
-                            }
-                        }
+                        None => Delta::new(a.peer_id.clone()),
                     }
                 } else {
                     self.seeders.insert(a.peer_id.clone(), Peer::new(&a));
-                    Delta {
-                        peer_id: a.peer_id.clone(),
-                        upload: 0,
-                        download: 0,
-                        left: 0,
-                    }
+                    Delta::new(a.peer_id.clone())
                 }
             }
             Action::Leeching => {
                 if self.leechers.contains_key(&a.peer_id) {
                     match self.leechers.get_mut(&a.peer_id) {
                         Some(peer) => peer.update(&a),
-                        None => {
-                            Delta {
-                                peer_id: a.peer_id.clone(),
-                                upload: 0,
-                                download: 0,
-                                left: 0,
-                            }
-                        }
+                        None => Delta::new(a.peer_id.clone()),
                     }
                 } else {
                     self.leechers.insert(a.peer_id.clone(), Peer::new(&a));
-                    Delta {
-                        peer_id: a.peer_id.clone(),
-                        upload: 0,
-                        download: 0,
-                        left: 0,
-                    }
+                    Delta::new(a.peer_id.clone())
                 }
             }
             Action::Completed => {
@@ -98,16 +74,9 @@ impl Torrent {
             Action::Stopped => {
                 match (self.leechers.remove(&a.peer_id),
                        self.seeders.remove(&a.peer_id)) {
-                    (Some(ref mut peer), None) => peer.update(&a),
+                    (Some(ref mut peer), _) => peer.update(&a),
                     (_, Some(ref mut peer)) => peer.update(&a),
-                    (None, None) => {
-                        Delta {
-                            peer_id: a.peer_id.clone(),
-                            upload: 0,
-                            download: 0,
-                            left: 0,
-                        }
-                    }
+                    (None, None) => Delta::new(a.peer_id.clone()),
                 }
             }
         }
@@ -166,30 +135,32 @@ impl Torrent {
 
     pub fn reap(&mut self) {
         // TODO use a config value for the max time
-        let to_del: Vec<_> =
-            self.leechers.iter()
-            .filter_map(|(k, peer)| {
-                if SteadyTime::now() - peer.last_action > Duration::seconds(3600) {
-                    Some(k.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let to_del: Vec<_> = self.leechers
+                                 .iter()
+                                 .filter_map(|(k, peer)| {
+                                     if SteadyTime::now() - peer.last_action >
+                                        Duration::seconds(3600) {
+                                         Some(k.clone())
+                                     } else {
+                                         None
+                                     }
+                                 })
+                                 .collect();
         for item in to_del {
             self.leechers.remove(&item);
         }
 
-        let to_del: Vec<_> =
-            self.seeders.iter()
-            .filter_map(|(k, peer)| {
-                if SteadyTime::now() - peer.last_action > Duration::seconds(3600) {
-                    Some(k.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let to_del: Vec<_> = self.seeders
+                                 .iter()
+                                 .filter_map(|(k, peer)| {
+                                     if SteadyTime::now() - peer.last_action >
+                                        Duration::seconds(3600) {
+                                         Some(k.clone())
+                                     } else {
+                                         None
+                                     }
+                                 })
+                                 .collect();
         for item in to_del {
             self.seeders.remove(&item);
         }
@@ -229,19 +200,19 @@ fn get_ips(peers: &mut Vec<u8>,
 fn v4_to_bytes(s: &SocketAddrV4) -> Vec<u8> {
     let mut v = Vec::with_capacity(6);
     v.extend(s.ip().octets().iter().cloned());
-    v.extend(u16_to_u8(s.port()).iter().cloned());
+    v.extend(u16_to_u8(s.port()));
     v
 }
 
 fn v6_to_bytes(s: &SocketAddrV6) -> Vec<u8> {
     let mut v = Vec::with_capacity(18);
     for seg in s.ip().segments().iter() {
-        v.extend(u16_to_u8(seg.clone()).iter().cloned());
+        v.extend(u16_to_u8(seg.clone()));
     }
-    v.extend(u16_to_u8(s.port()).iter().cloned());
+    v.extend(u16_to_u8(s.port()));
     v
 }
 
-fn u16_to_u8(i: u16) -> [u8; 2] {
-    [(i >> 8) as u8, (i & 0xff) as u8]
+fn u16_to_u8(i: u16) -> Vec<u8> {
+    vec![(i >> 8) as u8, (i & 0xff) as u8]
 }

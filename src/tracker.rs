@@ -5,16 +5,27 @@ use std::collections::HashMap;
 use error::ErrorResponse;
 use announce::{AnnounceResponse, Announce, Action};
 use scrape::ScrapeResponse;
-use std::net::{IpAddr, SocketAddr};
+use stats::Stats;
+use std::net::{IpAddr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::str::FromStr;
 use time::SteadyTime;
 use time::Duration;
 
 pub struct Tracker {
     pub torrents: ConcHashMap<String, Torrent>,
+    pub stats: Stats,
 }
 
 impl Tracker {
+    pub fn new() -> Tracker {
+        let torrents: ConcHashMap<String, Torrent> = Default::default();
+        let stats = Stats::new();
+        Tracker {
+            torrents: torrents,
+            stats: stats,
+        }
+    }
+
     pub fn handle_announce(&self,
                            req: &Request,
                            param_vec: Vec<(String, String)>)
@@ -32,52 +43,7 @@ impl Tracker {
 
         // IP parsing according to BEP 0007 with additional proxy forwarding check
         let port = try!(get_from_params(&params, String::from("port")));
-        let default_ip = match req.headers.get_raw("X-Forwarded-For") {
-            Some(bytes) => {
-                match String::from_utf8(bytes[0].clone()) {
-                    Ok(ip_str) => {
-                        match ip_str.parse::<IpAddr>() {
-                            Ok(ip) => SocketAddr::new(ip, port),
-                            Err(_) => req.remote_addr,
-                        }
-                    }
-                    Err(_) => req.remote_addr,
-                }
-            }
-            None => req.remote_addr,
-        };
-        let ip = match get_from_params(&params, String::from("ip")) {
-            Ok(ip) => SocketAddr::new(ip, port),
-            Err(_) => default_ip,
-        };
-
-        let (ipv4, ipv6) = match ip {
-            SocketAddr::V4(v4) => {
-                let v6 = match get_socket(&params, String::from("ipv6"), port) {
-                    Some(sock) => {
-                        match sock {
-                            SocketAddr::V6(v6) => Some(v6),
-                            _ => None,
-                        }
-                    }
-                    None => None,
-                };
-                (Some(v4), v6)
-            }
-            SocketAddr::V6(v6) => {
-                let v4 = match get_socket(&params, String::from("ipv4"), port) {
-                    Some(sock) => {
-                        match sock {
-                            SocketAddr::V4(v4) => Some(v4),
-                            _ => None,
-                        }
-                    }
-                    None => None,
-                };
-                (v4, Some(v6))
-            }
-        };
-
+        let (ipv4, ipv6) = get_ips(&params, req, &port);
         let action = match get_from_params::<String>(&params, String::from("event")) {
             Ok(ev_str) => {
                 match &ev_str[..] {
@@ -127,6 +93,7 @@ impl Tracker {
                 resp
             }
         };
+
         Ok(AnnounceResponse {
             peers: peers,
             stats: stats,
@@ -151,39 +118,93 @@ impl Tracker {
     }
 
     pub fn reap(&self) {
-        // Delete torrents which are too old, and reap the others.
-        let to_del: Vec<_> =
-            self.torrents.iter()
-            .filter_map(|(k, torrent)| {
-                if SteadyTime::now() - torrent.last_action > Duration::seconds(3600) {
-                    Some(k.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
+        // Delete torrents which are too old, and reap peers for the others.
+        let to_del: Vec<_> = self.torrents
+                                 .iter()
+                                 .filter_map(|(k, torrent)| {
+                                     if SteadyTime::now() - torrent.last_action >
+                                        Duration::seconds(3600) {
+                                         Some(k.clone())
+                                     } else {
+                                         None
+                                     }
+                                 })
+                                 .collect();
         for torrent in to_del {
             self.torrents.remove(&torrent);
         }
 
-        let to_reap: Vec<_> =
-            self.torrents.iter()
-            .filter_map(|(k, torrent)| {
-                if SteadyTime::now() - torrent.last_action > Duration::seconds(3600) {
-                    None
-                } else {
-                    Some(k.clone())
-                }
-            })
-            .collect();
+        let to_reap: Vec<_> = self.torrents
+                                  .iter()
+                                  .filter_map(|(k, torrent)| {
+                                      if SteadyTime::now() - torrent.last_action >
+                                         Duration::seconds(3600) {
+                                          None
+                                      } else {
+                                          Some(k.clone())
+                                      }
+                                  })
+                                  .collect();
         for info_hash in to_reap {
             match self.torrents.find_mut(&info_hash) {
                 Some(ref mut accessor) => {
                     let mut t = accessor.get();
                     t.reap();
                 }
-                None => { }
+                None => {}
             }
+        }
+    }
+}
+
+fn get_ips(params: &HashMap<String, String>,
+           req: &Request,
+           port: &u16)
+           -> (Option<SocketAddrV4>, Option<SocketAddrV6>) {
+    let port = *port;
+    let default_ip = match req.headers.get_raw("X-Forwarded-For") {
+        Some(bytes) => {
+            match String::from_utf8(bytes[0].clone()) {
+                Ok(ip_str) => {
+                    match ip_str.parse::<IpAddr>() {
+                        Ok(ip) => SocketAddr::new(ip, port),
+                        Err(_) => req.remote_addr,
+                    }
+                }
+                Err(_) => req.remote_addr,
+            }
+        }
+        None => req.remote_addr,
+    };
+    let ip = match get_from_params(&params, String::from("ip")) {
+        Ok(ip) => SocketAddr::new(ip, port),
+        Err(_) => default_ip,
+    };
+
+    match ip {
+        SocketAddr::V4(v4) => {
+            let v6 = match get_socket(&params, String::from("ipv6"), port) {
+                Some(sock) => {
+                    match sock {
+                        SocketAddr::V6(v6) => Some(v6),
+                        _ => None,
+                    }
+                }
+                None => None,
+            };
+            (Some(v4), v6)
+        }
+        SocketAddr::V6(v6) => {
+            let v4 = match get_socket(&params, String::from("ipv4"), port) {
+                Some(sock) => {
+                    match sock {
+                        SocketAddr::V4(v4) => Some(v4),
+                        _ => None,
+                    }
+                }
+                None => None,
+            };
+            (v4, Some(v6))
         }
     }
 }

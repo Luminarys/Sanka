@@ -9,6 +9,9 @@ concurrent-hashmap = { git = "https://github.com/veddan/rust-concurrent-hashmap.
 bip_bencode = "~0.1.2"
 time = "~0.1"
 url = "~0.5.5"
+toml = "~0.1.28"
+log = "~0.3.5"
+env_logger = "~0.3.2"
 
 [profile.dev]
 debug = true
