@@ -3,7 +3,7 @@ use time::SteadyTime;
 use time::Duration;
 
 use announce::{Announce, Action};
-use peer::{Peer, Delta};
+use tracker::peer::{Peer, Delta};
 use std::net::{SocketAddrV4, SocketAddrV6};
 
 pub struct Torrent {
@@ -14,12 +14,14 @@ pub struct Torrent {
     pub last_action: SteadyTime,
 }
 
+#[derive(Debug)]
 pub struct Stats {
     pub complete: i64,
     pub incomplete: i64,
     pub downloaded: i64,
 }
 
+#[derive(Debug)]
 pub struct Peers {
     pub peers4: Vec<u8>,
     pub peers6: Vec<u8>,
@@ -36,8 +38,9 @@ impl Torrent {
         }
     }
 
-    pub fn update(&mut self, a: Announce) -> Delta {
+    pub fn update(&mut self, announce: &Announce) -> Delta {
         self.last_action = SteadyTime::now();
+        let ref a = *announce;
         match a.action {
             Action::Seeding => {
                 if self.seeders.contains_key(&a.peer_id) {

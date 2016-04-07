@@ -1,5 +1,6 @@
 use time::SteadyTime;
 
+#[derive(Debug)]
 pub struct Stats {
     announces: u64,
     torrents: u64,

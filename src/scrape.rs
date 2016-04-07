@@ -1,9 +1,10 @@
 use response::TrackerResponse;
-use torrent::Stats;
+use tracker::torrent::Stats;
 use std::collections::{BTreeMap, HashMap};
 use bip_bencode::Bencode;
 use std::convert::AsRef;
 
+#[derive(Debug)]
 pub struct ScrapeResponse {
     pub torrents: HashMap<String, Stats>,
 }

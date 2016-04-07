@@ -1,6 +1,6 @@
 use response::TrackerResponse;
 use std::net::{SocketAddrV4, SocketAddrV6};
-use torrent::{Stats, Peers};
+use tracker::torrent::{Stats, Peers};
 
 pub struct Announce {
     pub info_hash: String,
@@ -22,6 +22,7 @@ pub enum Action {
     Stopped,
 }
 
+#[derive(Debug)]
 pub struct AnnounceResponse {
     pub stats: Stats,
     pub peers: Peers,

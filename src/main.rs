@@ -10,13 +10,12 @@ extern crate bip_bencode;
 extern crate log;
 extern crate env_logger;
 
-mod route;
 mod tracker;
-mod torrent;
-mod peer;
+mod route;
 mod announce;
 mod scrape;
 mod error;
+mod success;
 mod response;
 mod stats;
 
