@@ -1,8 +1,8 @@
 use tracker::Tracker;
 use response::TrackerResponse;
-use error::ErrorResponse;
-use announce::{Action, Announce};
-use scrape::Scrape;
+use response::error::ErrorResponse;
+use tracker::announce::{Action, Announce};
+use tracker::scrape::Scrape;
 
 use hyper::server::{Request, Response, Handler};
 use hyper::uri::RequestUri::AbsolutePath;
@@ -14,6 +14,12 @@ use std::str::FromStr;
 
 pub struct RequestHandler {
     pub tracker: Arc<Tracker>,
+}
+
+impl RequestHandler {
+    pub fn new(tracker: Arc<Tracker>) -> RequestHandler {
+        RequestHandler { tracker: tracker }
+    }
 }
 
 impl Handler for RequestHandler {

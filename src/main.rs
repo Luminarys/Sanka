@@ -2,25 +2,19 @@ extern crate hyper;
 extern crate url;
 extern crate concurrent_hashmap;
 extern crate time;
+extern crate env_logger;
 
 #[macro_use]
 extern crate bip_bencode;
 
 #[macro_use]
 extern crate log;
-extern crate env_logger;
 
 mod tracker;
-mod route;
-mod announce;
-mod scrape;
-mod error;
-mod success;
+mod http;
 mod response;
-mod stats;
 
 use hyper::Server;
-use route::RequestHandler;
 use tracker::Tracker;
 use std::sync::Arc;
 use std::thread;
@@ -36,7 +30,7 @@ fn main() {
     let tracker_http = tracker_arc.clone();
     let tracker_reap = tracker_arc.clone();
 
-    let handler = RequestHandler { tracker: tracker_http };
+    let handler = http::RequestHandler::new(tracker_http);
     let _guard = server.handle(handler).unwrap();
     thread::spawn(move || {
         info!("Starting reaper!");

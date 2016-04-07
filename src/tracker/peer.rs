@@ -1,6 +1,7 @@
+use tracker::announce::Announce;
+
 use time::SteadyTime;
 use std::net::{SocketAddrV4, SocketAddrV6};
-use announce::Announce;
 
 #[derive(Debug)]
 pub struct Peer {

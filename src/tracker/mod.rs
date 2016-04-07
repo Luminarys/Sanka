@@ -1,14 +1,19 @@
 pub mod torrent;
 pub mod peer;
+pub mod scrape;
+pub mod announce;
+mod stats;
+
+use self::torrent::Torrent;
+use self::announce::{AnnounceResponse, Announce};
+use self::scrape::{ScrapeResponse, Scrape};
+use self::stats::Stats;
+
+use response::error::ErrorResponse;
+use response::success::SuccessResponse;
 
 use concurrent_hashmap::ConcHashMap;
-use self::torrent::Torrent;
 use std::collections::HashMap;
-use error::ErrorResponse;
-use success::SuccessResponse;
-use announce::{AnnounceResponse, Announce};
-use scrape::{ScrapeResponse, Scrape};
-use stats::Stats;
 use time::SteadyTime;
 use time::Duration;
 

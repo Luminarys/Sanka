@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use time::SteadyTime;
 use time::Duration;
 
-use announce::{Announce, Action};
+use tracker::announce::{Announce, Action};
 use tracker::peer::{Peer, Delta};
 use std::net::{SocketAddrV4, SocketAddrV6};
 
