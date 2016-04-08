@@ -1,6 +1,6 @@
-use response::TrackerResponse;
 use tracker::announce::AnnounceResponse;
 use tracker::scrape::ScrapeResponse;
+use tracker::stats::StatsResponse;
 
 use bip_bencode::Bencode;
 use std::collections::BTreeMap;
@@ -9,19 +9,21 @@ use std::collections::BTreeMap;
 pub enum SuccessResponse {
     Announce(AnnounceResponse),
     Scrape(ScrapeResponse),
+    Stats(StatsResponse),
 }
 
-impl TrackerResponse for SuccessResponse {
-    fn to_bencode(&self) -> Vec<u8> {
+impl SuccessResponse {
+    pub fn http_resp(&self) -> Vec<u8> {
         match *self {
             SuccessResponse::Announce(ref a) => bencode_announce(a),
             SuccessResponse::Scrape(ref s) => bencode_scrape(s),
+            SuccessResponse::Stats(ref s) => display_stats(s),
         }
     }
 }
 
 fn bencode_announce(a: &AnnounceResponse) -> Vec<u8> {
-    (ben_map!{
+    let benc = ben_map!{
        "peers" => ben_bytes!(&a.peers.peers4),
        "peers6" => ben_bytes!(&a.peers.peers6),
        "interval" => ben_int!(1800),
@@ -29,7 +31,8 @@ fn bencode_announce(a: &AnnounceResponse) -> Vec<u8> {
        "complete" => ben_int!(a.stats.complete),
        "downloaded" => ben_int!(a.stats.downloaded),
        "incomplete" => ben_int!(a.stats.incomplete)
-   }).encode()
+    };
+    benc.encode()
 }
 
 fn bencode_scrape(s: &ScrapeResponse) -> Vec<u8> {
@@ -45,4 +48,10 @@ fn bencode_scrape(s: &ScrapeResponse) -> Vec<u8> {
     }
     resp.insert("files", Bencode::Dict(torrents));
     Bencode::Dict(resp).encode()
+}
+fn display_stats(s: &StatsResponse) -> Vec<u8> {
+    String::from(format!("Announces/s: {}\nScrapes/s: {}",
+                         s.announce_rate,
+                         s.scrape_rate))
+        .into_bytes()
 }

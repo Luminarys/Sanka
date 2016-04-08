@@ -1,6 +1,7 @@
 use tracker::Tracker;
 use response::TrackerResponse;
 use response::error::ErrorResponse;
+use response::success::SuccessResponse;
 use tracker::announce::{Action, Announce};
 use tracker::scrape::Scrape;
 
@@ -46,19 +47,24 @@ impl Handler for RequestHandler {
                             _ => Err(ErrorResponse::BadAction),
                         }
                     }
-                    None => Err(ErrorResponse::BadRequest),
+                    None => {
+                        match &path[..] {
+                            "/stats" => self.tracker.get_stats(),
+                            _ => Err(ErrorResponse::BadAction),
+                        }
+                    }
                 }
             }
             _ => Err(ErrorResponse::BadAction),
         };
-        res.send(bencode_result(resp).as_slice()).unwrap();
+        res.send(serialize_resp(resp).as_slice()).unwrap();
     }
 }
 
 fn request_to_scrape(param_vec: Vec<(String, String)>) -> Result<Scrape, ErrorResponse> {
     let hashes = param_vec.into_iter()
-        .map(|(_, hash)| hash)
-        .collect();
+                          .map(|(_, hash)| hash)
+                          .collect();
     Ok(Scrape::new(hashes))
 }
 
@@ -200,9 +206,9 @@ fn get_action(left: u64) -> Action {
     }
 }
 
-fn bencode_result<S: TrackerResponse, E: TrackerResponse>(result: Result<S, E>) -> Vec<u8> {
+fn serialize_resp(result: Result<SuccessResponse, ErrorResponse>) -> Vec<u8> {
     match result {
-        Ok(resp) => resp.to_bencode(),
+        Ok(resp) => resp.http_resp(),
         Err(err) => err.to_bencode(),
     }
 }

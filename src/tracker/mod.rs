@@ -2,16 +2,16 @@ pub mod torrent;
 pub mod peer;
 pub mod scrape;
 pub mod announce;
-mod stats;
+pub mod stats;
 
 use self::torrent::Torrent;
 use self::announce::{AnnounceResponse, Announce};
 use self::scrape::{ScrapeResponse, Scrape};
-use self::stats::Stats;
-
+use self::stats::{Stats, StatsResponse};
 use response::error::ErrorResponse;
 use response::success::SuccessResponse;
 
+use spin::Mutex;
 use concurrent_hashmap::ConcHashMap;
 use std::collections::HashMap;
 use time::SteadyTime;
@@ -19,13 +19,13 @@ use time::Duration;
 
 pub struct Tracker {
     pub torrents: ConcHashMap<String, Torrent>,
-    pub stats: Stats,
+    pub stats: Mutex<Stats>,
 }
 
 impl Tracker {
     pub fn new() -> Tracker {
         let torrents: ConcHashMap<String, Torrent> = Default::default();
-        let stats = Stats::new();
+        let stats = Mutex::new(Stats::new());
         Tracker {
             torrents: torrents,
             stats: stats,
@@ -33,6 +33,8 @@ impl Tracker {
     }
 
     pub fn handle_announce(&self, announce: Announce) -> Result<SuccessResponse, ErrorResponse> {
+        let mut tracker_stats = self.stats.lock();
+        tracker_stats.announces += 1;
         let (_delta, stats, peers) = match self.torrents.find_mut(&announce.info_hash) {
             Some(ref mut accessor) => {
                 let mut t = accessor.get();
@@ -59,6 +61,8 @@ impl Tracker {
     }
 
     pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {
+        let mut tracker_stats = self.stats.lock();
+        tracker_stats.scrapes += 1;
         let mut torrents = HashMap::new();
         for hash in scrape.torrents {
             match self.torrents.find(&hash) {
@@ -73,7 +77,16 @@ impl Tracker {
         Ok(SuccessResponse::Scrape(ScrapeResponse { torrents: torrents }))
     }
 
+    pub fn get_stats(&self) -> Result<SuccessResponse, ErrorResponse> {
+        let ref stats = *self.stats.lock();
+        let resp = StatsResponse::new(stats);
+        Ok(SuccessResponse::Stats(resp))
+    }
+
     pub fn reap(&self) {
+        // Clear stats
+        let mut stats = self.stats.lock();
+        stats.update();
         // Delete torrents which are too old, and reap peers for the others.
         let to_del: Vec<_> = self.torrents
                                  .iter()
