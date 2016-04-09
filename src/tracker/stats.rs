@@ -4,8 +4,8 @@ use time::SteadyTime;
 pub struct Stats {
     pub announces: u64,
     pub scrapes: u64,
-    torrents: u64,
-    peers: u64,
+    pub torrents: u64,
+    pub peers: u64,
     start_time: SteadyTime,
     clear_time: SteadyTime,
 }

@@ -168,6 +168,10 @@ impl Torrent {
             self.seeders.remove(&item);
         }
     }
+
+    pub fn get_peer_count(&self) -> u64 {
+        (self.seeders.len() + self.leechers.len()) as u64
+    }
 }
 
 fn get_ips(peers: &mut Vec<u8>,

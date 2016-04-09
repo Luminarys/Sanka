@@ -50,8 +50,10 @@ fn bencode_scrape(s: &ScrapeResponse) -> Vec<u8> {
     Bencode::Dict(resp).encode()
 }
 fn display_stats(s: &StatsResponse) -> Vec<u8> {
-    String::from(format!("Announces/s: {}\nScrapes/s: {}",
+    String::from(format!("Announces/s: {}\nScrapes/s: {}\nTorrents: {}\nPeers: {}",
                          s.announce_rate,
-                         s.scrape_rate))
+                         s.scrape_rate,
+                         s.torrents,
+                         s.peers))
         .into_bytes()
 }

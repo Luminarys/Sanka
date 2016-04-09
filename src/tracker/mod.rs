@@ -38,12 +38,16 @@ impl Tracker {
         let (_delta, stats, peers) = match self.torrents.find_mut(&announce.info_hash) {
             Some(ref mut accessor) => {
                 let mut t = accessor.get();
+                tracker_stats.peers -= t.get_peer_count();
                 let delta = t.update(&announce);
+                tracker_stats.peers += t.get_peer_count();
                 (delta,
                  t.get_stats(),
                  t.get_peers(announce.numwant, announce.action))
             }
             None => {
+                tracker_stats.torrents += 1;
+                tracker_stats.peers += 1;
                 let mut t = Torrent::new(announce.info_hash.clone());
                 let delta = t.update(&announce);
                 let resp = (delta,
@@ -61,8 +65,6 @@ impl Tracker {
     }
 
     pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {
-        let mut tracker_stats = self.stats.lock();
-        tracker_stats.scrapes += 1;
         let mut torrents = HashMap::new();
         for hash in scrape.torrents {
             match self.torrents.find(&hash) {
@@ -74,6 +76,10 @@ impl Tracker {
                 None => {}
             };
         }
+
+        let mut tracker_stats = self.stats.lock();
+        tracker_stats.scrapes += 1;
+
         Ok(SuccessResponse::Scrape(ScrapeResponse { torrents: torrents }))
     }
 
@@ -100,6 +106,7 @@ impl Tracker {
                                  })
                                  .collect();
         for torrent in to_del {
+            stats.torrents -= 1;
             self.torrents.remove(&torrent);
         }
 
@@ -114,11 +121,13 @@ impl Tracker {
                                       }
                                   })
                                   .collect();
+        stats.peers = 0;
         for info_hash in to_reap {
             match self.torrents.find_mut(&info_hash) {
                 Some(ref mut accessor) => {
                     let mut t = accessor.get();
                     t.reap();
+                    stats.peers += t.get_peer_count();
                 }
                 None => {}
             }
