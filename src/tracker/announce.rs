@@ -22,7 +22,7 @@ pub enum Action {
 }
 
 #[derive(Debug)]
-pub struct AnnounceResponse {
+pub struct AnnounceResponse<'a> {
     pub stats: Stats,
-    pub peers: Peers,
+    pub peers: Peers<'a>,
 }

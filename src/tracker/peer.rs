@@ -3,7 +3,7 @@ use tracker::announce::Announce;
 use time::SteadyTime;
 use std::net::{SocketAddrV4, SocketAddrV6};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Peer {
     id: String,
     uploaded: u64,
@@ -62,6 +62,36 @@ impl Peer {
         self.last_action = SteadyTime::now();
         d
     }
+
+    pub fn get_ipv4_bytes(&self) -> Option<Vec<u8>> {
+        match self.ipv4 {
+            None => None,
+            Some(sock) => {
+                let mut v = Vec::with_capacity(6);
+                v.extend(sock.ip().octets().to_vec());
+                v.extend(u16_to_u8(sock.port()));
+                Some(v)
+            }
+        }
+    }
+
+    pub fn get_ipv6_bytes(&self) -> Option<Vec<u8>> {
+        match self.ipv6 {
+            None => None,
+            Some(sock) => {
+                let mut v = Vec::with_capacity(18);
+                for seg in sock.ip().segments().iter() {
+                    v.extend(u16_to_u8(seg.clone()));
+                }
+                v.extend(u16_to_u8(sock.port()));
+                Some(v)
+            }
+        }
+    }
+}
+
+fn u16_to_u8(i: u16) -> Vec<u8> {
+    vec![(i >> 8) as u8, (i & 0xff) as u8]
 }
 
 impl Delta {

@@ -33,35 +33,35 @@ impl Tracker {
     }
 
     pub fn handle_announce(&self, announce: Announce) -> Result<SuccessResponse, ErrorResponse> {
-        let mut tracker_stats = self.stats.lock();
-        tracker_stats.announces += 1;
-        let (_delta, stats, peers) = match self.torrents.find_mut(&announce.info_hash) {
+        let res = match self.torrents.find_mut(&announce.info_hash) {
             Some(ref mut accessor) => {
+                let mut tracker_stats = self.stats.lock();
+                tracker_stats.announces += 1;
                 let mut t = accessor.get();
                 tracker_stats.peers -= t.get_peer_count();
-                let delta = t.update(&announce);
+                let _delta = t.update(&announce);
                 tracker_stats.peers += t.get_peer_count();
-                (delta,
-                 t.get_stats(),
-                 t.get_peers(announce.numwant, announce.action))
+
+                Some(SuccessResponse::Announce(AnnounceResponse {
+                    peers: t.get_peers(announce.numwant.clone(), announce.action.clone()),
+                    stats: t.get_stats(),
+                }))
             }
             None => {
+                let mut tracker_stats = self.stats.lock();
                 tracker_stats.torrents += 1;
-                tracker_stats.peers += 1;
-                let mut t = Torrent::new(announce.info_hash.clone());
-                let delta = t.update(&announce);
-                let resp = (delta,
-                            t.get_stats(),
-                            t.get_peers(announce.numwant, announce.action));
-                self.torrents.insert(announce.info_hash, t);
-                resp
+                None
             }
         };
 
-        Ok(SuccessResponse::Announce(AnnounceResponse {
-            peers: peers,
-            stats: stats,
-        }))
+        match res {
+            Some(resp) => Ok(resp),
+            None => {
+                let t = Torrent::new(announce.info_hash.clone());
+                self.torrents.insert(announce.info_hash.clone(), t);
+                self.handle_announce(announce)
+            }
+        }
     }
 
     pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {

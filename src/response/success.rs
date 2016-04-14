@@ -6,14 +6,14 @@ use bip_bencode::Bencode;
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-pub enum SuccessResponse {
-    Announce(AnnounceResponse),
+pub enum SuccessResponse<'a> {
+    Announce(AnnounceResponse<'a>),
     Scrape(ScrapeResponse),
     Stats(StatsResponse),
 }
 
-impl SuccessResponse {
-    pub fn http_resp(&self) -> Vec<u8> {
+impl<'a> SuccessResponse<'a> {
+    pub fn http_resp(&'a self) -> Vec<u8> {
         match *self {
             SuccessResponse::Announce(ref a) => bencode_announce(a),
             SuccessResponse::Scrape(ref s) => bencode_scrape(s),
@@ -23,9 +23,19 @@ impl SuccessResponse {
 }
 
 fn bencode_announce(a: &AnnounceResponse) -> Vec<u8> {
+    let mut peer_bytes = Vec::with_capacity(6 * a.peers.peers4.len() as usize);
+    for p in a.peers.peers4.iter() {
+        peer_bytes.extend(p.get_ipv4_bytes().unwrap());
+    }
+
+    let mut peer6_bytes = Vec::with_capacity(18 * a.peers.peers6.len() as usize);
+    for p in a.peers.peers6.iter() {
+        peer6_bytes.extend(p.get_ipv6_bytes().unwrap());
+    }
+
     let benc = ben_map!{
-       "peers" => ben_bytes!(&a.peers.peers4),
-       "peers6" => ben_bytes!(&a.peers.peers6),
+       "peers" => ben_bytes!(&peer_bytes),
+       "peers6" => ben_bytes!(&peer6_bytes),
        "interval" => ben_int!(1800),
        "min interval" => ben_int!(900),
        "complete" => ben_int!(a.stats.complete),
