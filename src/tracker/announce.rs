@@ -11,6 +11,7 @@ pub struct Announce {
     pub left: u64,
     pub action: Action,
     pub numwant: u8,
+    pub compact: bool,
 }
 
 #[derive(Clone)]
@@ -25,4 +26,5 @@ pub enum Action {
 pub struct AnnounceResponse<'a> {
     pub stats: Stats,
     pub peers: Peers<'a>,
+    pub compact: bool,
 }

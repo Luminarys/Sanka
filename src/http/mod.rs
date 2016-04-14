@@ -108,6 +108,11 @@ fn request_to_announce(req: &Request,
         Err(_) => 25,
     };
 
+    let compact = match get_from_params::<u8>(&params, String::from("compact")) {
+        Ok(amount) => amount > 0,
+        Err(_) => true,
+    };
+
     Ok(Announce {
         info_hash: info_hash,
         peer_id: pid,
@@ -118,6 +123,7 @@ fn request_to_announce(req: &Request,
         left: left,
         action: action,
         numwant: numwant,
+        compact: compact,
     })
 }
 

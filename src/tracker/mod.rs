@@ -45,6 +45,7 @@ impl Tracker {
                 Some(SuccessResponse::Announce(AnnounceResponse {
                     peers: t.get_peers(announce.numwant.clone(), announce.action.clone()),
                     stats: t.get_stats(),
+                    compact: announce.compact.clone(),
                 }))
             }
             None => {

@@ -118,7 +118,7 @@ impl Torrent {
                 }
             }
             _ => {
-                let count = get_ips(&mut peers, &mut peers6, &self.leechers, amount);
+                let _count = get_ips(&mut peers, &mut peers6, &self.leechers, amount);
                 Peers {
                     peers4: peers,
                     peers6: peers6,
