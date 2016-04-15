@@ -5,7 +5,7 @@ use std::net::{SocketAddrV4, SocketAddrV6};
 
 #[derive(Debug, Clone)]
 pub struct Peer {
-    id: String,
+    pub id: String,
     uploaded: u64,
     downloaded: u64,
     left: u64,
@@ -75,6 +75,15 @@ impl Peer {
         }
     }
 
+    pub fn get_ipv4_str(&self) -> Option<String> {
+        match self.ipv4 {
+            None => None,
+            Some(sock) => {
+                Some(format!("{}", sock.ip()))
+            }
+        }
+    }
+
     pub fn get_ipv6_bytes(&self) -> Option<Vec<u8>> {
         match self.ipv6 {
             None => None,
@@ -85,6 +94,15 @@ impl Peer {
                 }
                 v.extend(u16_to_u8(sock.port()));
                 Some(v)
+            }
+        }
+    }
+
+    pub fn get_ipv6_str(&self) -> Option<String> {
+        match self.ipv6 {
+            None => None,
+            Some(sock) => {
+                Some(format!("{}", sock.ip()))
             }
         }
     }
