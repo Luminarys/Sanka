@@ -1,5 +1,8 @@
 use std::net::{SocketAddrV4, SocketAddrV6};
-use tracker::torrent::{Stats, Peers};
+use std::sync::MutexGuard;
+use std::collections::HashMap;
+
+use tracker::torrent::{Stats, Peers, Torrent};
 
 pub struct Announce {
     pub info_hash: String,
@@ -22,9 +25,32 @@ pub enum Action {
     Stopped,
 }
 
-#[derive(Debug)]
 pub struct AnnounceResponse<'a> {
-    pub stats: Stats,
-    pub peers: Peers<'a>,
-    pub compact: bool,
+    announce: Announce,
+    guard: MutexGuard<'a, HashMap<String, Torrent>>,
+}
+
+impl<'a> AnnounceResponse<'a> {
+    pub fn new(announce: Announce,
+               guard: MutexGuard<HashMap<String, Torrent>>)
+               -> AnnounceResponse {
+        AnnounceResponse {
+            announce: announce,
+            guard: guard
+        }
+    }
+
+    pub fn peers(&self) -> Peers {
+        let t = self.guard.get(&self.announce.info_hash).unwrap();
+        t.get_peers(self.announce.numwant.clone(), self.announce.action.clone())
+    }
+
+    pub fn stats(&self) -> Stats {
+        let t = self.guard.get(&self.announce.info_hash).unwrap();
+        t.get_stats()
+    }
+
+    pub fn compact(&self) -> bool {
+        self.announce.compact
+    }
 }

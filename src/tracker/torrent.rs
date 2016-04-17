@@ -20,7 +20,6 @@ pub struct Stats {
     pub downloaded: i64,
 }
 
-#[derive(Debug)]
 pub struct Peers<'a> {
     pub peers4: Vec<&'a Peer>,
     pub peers6: Vec<&'a Peer>,

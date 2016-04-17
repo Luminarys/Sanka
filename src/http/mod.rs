@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use url::form_urlencoded;
 use std::str::FromStr;
+use std::cmp;
 
 pub struct RequestHandler {
     pub tracker: Arc<Tracker>,
@@ -97,21 +98,10 @@ fn request_to_announce(req: &Request,
         Err(_) => get_action(left),
     };
 
-    let numwant = match get_from_params::<u8>(&params, String::from("numwant")) {
-        Ok(amount) => {
-            if amount > 25 {
-                25
-            } else {
-                amount
-            }
-        }
-        Err(_) => 25,
-    };
+    let numwant = cmp::min(get_from_params::<u8>(&params, String::from("numwant")).unwrap_or(25),
+                           25);
 
-    let compact = match get_from_params::<u8>(&params, String::from("compact")) {
-        Ok(amount) => amount > 0,
-        Err(_) => true,
-    };
+    let compact = get_from_params::<u8>(&params, String::from("compact")).unwrap_or(1) != 0;
 
     Ok(Announce {
         info_hash: info_hash,
@@ -194,8 +184,8 @@ fn get_from_params<T: FromStr>(map: &HashMap<String, String>,
 }
 
 fn get_socket(params: &HashMap<String, String>, key: String, port: u16) -> Option<SocketAddr> {
-    let ip: Result<IpAddr, ErrorResponse> = get_from_params(params, key.clone());
-    let socket: Result<SocketAddr, ErrorResponse> = get_from_params(params, key.clone());
+    let ip = get_from_params(params, key.clone());
+    let socket = get_from_params(params, key.clone());
     match (ip, socket) {
         (Err(_), Err(_)) => None,
         (Ok(ip), Err(_)) => Some(SocketAddr::new(ip, port)),

@@ -3,7 +3,6 @@ use tracker::announce::Announce;
 use time::SteadyTime;
 use std::net::{SocketAddrV4, SocketAddrV6};
 
-#[derive(Debug, Clone)]
 pub struct Peer {
     pub id: String,
     uploaded: u64,
@@ -14,7 +13,6 @@ pub struct Peer {
     pub ipv6: Option<SocketAddrV6>,
 }
 
-#[derive(Debug)]
 pub struct Delta {
     pub peer_id: String,
     pub upload: u64,

@@ -1,9 +1,7 @@
 extern crate hyper;
 extern crate url;
-extern crate concurrent_hashmap;
 extern crate time;
 extern crate env_logger;
-extern crate spin;
 
 #[macro_use]
 extern crate bip_bencode;
