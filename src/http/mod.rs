@@ -10,7 +10,6 @@ use hyper::uri::RequestUri::AbsolutePath;
 use std::net::{IpAddr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::collections::HashMap;
 use std::sync::Arc;
-use url::form_urlencoded;
 use url::{Url, UrlParser};
 use std::str::FromStr;
 use std::cmp;
@@ -51,22 +50,27 @@ impl RequestHandler {
             if path.len() != 2 {
                 Err(ErrorResponse::BadRequest)
             } else {
-                self.handle_private_req(&path[1], &path[0], params)
+                // Do key validation
+                if false {
+                    Err(ErrorResponse::BadAuth)
+                } else {
+                    self.handle_req(req, &path[1], params)
+                }
             }
         } else {
             if path.len() != 1 {
                 Err(ErrorResponse::BadRequest)
             } else {
-                self.handle_public_req(req, &path[0], params)
+                self.handle_req(req, &path[0], params)
             }
         }
     }
 
-    fn handle_public_req(&self,
-                         req: &Request,
-                         path: &String,
-                         params: Option<Vec<(String, String)>>)
-                         -> Result<SuccessResponse, ErrorResponse> {
+    fn handle_req(&self,
+                  req: &Request,
+                  path: &String,
+                  params: Option<Vec<(String, String)>>)
+                  -> Result<SuccessResponse, ErrorResponse> {
         match &path[..] {
             "stats" => self.tracker.get_stats(),
             "announce" => {
@@ -79,14 +83,6 @@ impl RequestHandler {
             }
             _ => Err(ErrorResponse::BadAction),
         }
-    }
-
-    fn handle_private_req(&self,
-                          path: &String,
-                          key: &String,
-                          params: Option<Vec<(String, String)>>)
-                          -> Result<SuccessResponse, ErrorResponse> {
-        Err(ErrorResponse::BadAction)
     }
 }
 
