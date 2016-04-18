@@ -1,8 +1,6 @@
 use std::net::{SocketAddrV4, SocketAddrV6};
-use std::sync::MutexGuard;
-use std::collections::HashMap;
 
-use tracker::torrent::{Stats, Peers, Torrent};
+use tracker::torrent::{Stats, Peers};
 
 pub struct Announce {
     pub info_hash: String,
