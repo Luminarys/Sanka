@@ -1,4 +1,4 @@
-use tracker::announce::Announce;
+use tracker::announce::{Announce, AnnouncePeer};
 
 use time::SteadyTime;
 use std::net::{SocketAddrV4, SocketAddrV6};
@@ -61,53 +61,13 @@ impl Peer {
         d
     }
 
-    pub fn get_ipv4_bytes(&self) -> Option<Vec<u8>> {
-        match self.ipv4 {
-            None => None,
-            Some(sock) => {
-                let mut v = Vec::with_capacity(6);
-                v.extend(sock.ip().octets().to_vec());
-                v.extend(u16_to_u8(sock.port()));
-                Some(v)
-            }
+    pub fn get_announce_peer(&self) -> AnnouncePeer {
+        AnnouncePeer {
+            id: self.id.clone(),
+            ipv4: self.ipv4.clone(),
+            ipv6: self.ipv6.clone(),
         }
     }
-
-    pub fn get_ipv4_str(&self) -> Option<String> {
-        match self.ipv4 {
-            None => None,
-            Some(sock) => {
-                Some(format!("{}", sock.ip()))
-            }
-        }
-    }
-
-    pub fn get_ipv6_bytes(&self) -> Option<Vec<u8>> {
-        match self.ipv6 {
-            None => None,
-            Some(sock) => {
-                let mut v = Vec::with_capacity(18);
-                for seg in sock.ip().segments().iter() {
-                    v.extend(u16_to_u8(seg.clone()));
-                }
-                v.extend(u16_to_u8(sock.port()));
-                Some(v)
-            }
-        }
-    }
-
-    pub fn get_ipv6_str(&self) -> Option<String> {
-        match self.ipv6 {
-            None => None,
-            Some(sock) => {
-                Some(format!("{}", sock.ip()))
-            }
-        }
-    }
-}
-
-fn u16_to_u8(i: u16) -> Vec<u8> {
-    vec![(i >> 8) as u8, (i & 0xff) as u8]
 }
 
 impl Delta {
