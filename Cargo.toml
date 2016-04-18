@@ -4,13 +4,18 @@ version = "0.1.0"
 authors = ["Luminarys <postmaster@gensok.io>"]
 
 [dependencies]
-hyper = "~0.7.2"
+hyper = "~0.8"
 bip_bencode = "~0.1.2"
 time = "~0.1"
 url = "~0.5.5"
 toml = "~0.1.28"
 log = "~0.3.5"
 env_logger = "~0.3.2"
+
+[features]
+default = ["stats"]
+stats = []
+private = []
 
 [profile.dev]
 debug = true

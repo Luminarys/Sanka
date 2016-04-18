@@ -11,6 +11,7 @@ use std::net::{IpAddr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::collections::HashMap;
 use std::sync::Arc;
 use url::form_urlencoded;
+use url::{Url, UrlParser};
 use std::str::FromStr;
 use std::cmp;
 
@@ -28,33 +29,9 @@ impl Handler for RequestHandler {
     fn handle(&self, req: Request, res: Response) {
         let resp = match req.uri {
             AbsolutePath(ref path) => {
-                match path.find('?') {
-                    Some(i) => {
-                        let (action, param_str) = path.split_at(i + 1);
-                        let param_vec = form_urlencoded::parse(param_str.as_bytes());
-                        match action {
-                            "/announce?" => {
-                                match request_to_announce(&req, param_vec) {
-                                    Ok(announce) => self.tracker.handle_announce(announce),
-                                    Err(e) => Err(e),
-                                }
-                            }
-                            "/scrape?" => {
-                                match request_to_scrape(param_vec) {
-                                    Ok(scrape) => self.tracker.handle_scrape(scrape),
-                                    Err(e) => Err(e),
-                                }
-                            }
-                            _ => Err(ErrorResponse::BadAction),
-                        }
-                    }
-                    None => {
-                        match &path[..] {
-                            "/stats" => self.tracker.get_stats(),
-                            _ => Err(ErrorResponse::BadAction),
-                        }
-                    }
-                }
+                let base = Url::parse("http://localhost").unwrap();
+                let url = UrlParser::new().base_url(&base).parse(path).unwrap();
+                self.handle_url(&req, url)
             }
             _ => Err(ErrorResponse::BadAction),
         };
@@ -62,7 +39,63 @@ impl Handler for RequestHandler {
     }
 }
 
-fn request_to_scrape(param_vec: Vec<(String, String)>) -> Result<Scrape, ErrorResponse> {
+impl RequestHandler {
+    fn handle_url(&self, req: &Request, url: Url) -> Result<SuccessResponse, ErrorResponse> {
+        if url.path().is_none() {
+            return Err(ErrorResponse::BadAction);
+        }
+        let path = url.path().unwrap();
+        let params = url.query_pairs();
+
+        if cfg!(feature = "private") {
+            if path.len() != 2 {
+                Err(ErrorResponse::BadRequest)
+            } else {
+                self.handle_private_req(&path[1], &path[0], params)
+            }
+        } else {
+            if path.len() != 1 {
+                Err(ErrorResponse::BadRequest)
+            } else {
+                self.handle_public_req(req, &path[0], params)
+            }
+        }
+    }
+
+    fn handle_public_req(&self,
+                         req: &Request,
+                         path: &String,
+                         params: Option<Vec<(String, String)>>)
+                         -> Result<SuccessResponse, ErrorResponse> {
+        match &path[..] {
+            "stats" => self.tracker.get_stats(),
+            "announce" => {
+                let announce = try!(request_to_announce(req, params));
+                self.tracker.handle_announce(announce)
+            }
+            "scrape" => {
+                let scrape = try!(request_to_scrape(params));
+                self.tracker.handle_scrape(scrape)
+            }
+            _ => Err(ErrorResponse::BadAction),
+        }
+    }
+
+    fn handle_private_req(&self,
+                          path: &String,
+                          key: &String,
+                          params: Option<Vec<(String, String)>>)
+                          -> Result<SuccessResponse, ErrorResponse> {
+        Err(ErrorResponse::BadAction)
+    }
+}
+
+fn request_to_scrape(params: Option<Vec<(String, String)>>) -> Result<Scrape, ErrorResponse> {
+    if params.is_none() {
+        return Err(ErrorResponse::BadRequest);
+    }
+    let param_vec = params.unwrap();
+
     let hashes = param_vec.into_iter()
                           .map(|(_, hash)| hash)
                           .collect();
@@ -70,15 +103,26 @@ fn request_to_scrape(param_vec: Vec<(String, String)>) -> Result<Scrape, ErrorRe
 }
 
 fn request_to_announce(req: &Request,
-                       param_vec: Vec<(String, String)>)
+                       params: Option<Vec<(String, String)>>)
                        -> Result<Announce, ErrorResponse> {
+    if params.is_none() {
+        return Err(ErrorResponse::BadRequest);
+    }
+    let param_vec = params.unwrap();
+    if param_vec.len() > 10 {
+        return Err(ErrorResponse::BadRequest);
+    }
+
     let mut params = HashMap::new();
     for (key, val) in param_vec {
         params.insert(key, val);
     }
 
     let info_hash: String = try!(get_from_params(&params, String::from("info_hash")));
-    let pid = try!(get_from_params(&params, String::from("peer_id")));
+    let pid: String = try!(get_from_params(&params, String::from("peer_id")));
+    if info_hash.len() > 40 || pid.len() > 30 {
+        return Err(ErrorResponse::BadRequest);
+    }
     let ul = try!(get_from_params(&params, String::from("uploaded")));
     let dl = try!(get_from_params(&params, String::from("downloaded")));
     let left = try!(get_from_params(&params, String::from("left")));

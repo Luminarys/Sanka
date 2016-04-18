@@ -48,24 +48,24 @@ fn bencode_announce(a: &AnnounceResponse) -> Vec<u8> {
         benc.encode()
     } else {
         let temp_peers: Vec<_> = peers.peers4.iter().map(|p| {
-            (p.id.clone(), p.get_ipv4_str().unwrap(), p.ipv4.unwrap().port().to_string())
+            (p.id.clone(), p.get_ipv4_str().unwrap(), p.ipv4.unwrap().port())
         }).collect();
-        let peers_benc: Vec<_> = temp_peers.iter().map(|&(ref id, ref ip, ref port)| {
+        let peers_benc: Vec<_> = temp_peers.iter().map(|&(ref id, ref ip, port)| {
             ben_map!{
                 "peer id" => ben_bytes!(id),
                 "ip" => ben_bytes!(ip),
-                "port" => ben_bytes!(port)
+                "port" => ben_int!(port as i64)
             }
         }).collect();
 
         let temp_peers6: Vec<_> = peers.peers6.iter().map(|p| {
-            (p.id.clone(), p.get_ipv6_str().unwrap(), p.ipv6.unwrap().port().to_string())
+            (p.id.clone(), p.get_ipv6_str().unwrap(), p.ipv6.unwrap().port())
         }).collect();
-        let peers6_benc: Vec<_> = temp_peers6.iter().map(|&(ref id, ref ip, ref port)| {
+        let peers6_benc: Vec<_> = temp_peers6.iter().map(|&(ref id, ref ip, port)| {
             ben_map!{
                 "peer id" => ben_bytes!(id),
                 "ip" => ben_bytes!(ip),
-                "port" => ben_bytes!(port)
+                "port" => ben_int!(port as i64)
             }
         }).collect();
 

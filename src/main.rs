@@ -12,6 +12,7 @@ extern crate log;
 mod tracker;
 mod http;
 mod response;
+mod private;
 
 use hyper::Server;
 use tracker::Tracker;
