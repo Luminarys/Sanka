@@ -5,14 +5,14 @@ use tracker::stats::StatsResponse;
 use bip_bencode::Bencode;
 use std::collections::BTreeMap;
 
-pub enum SuccessResponse<'a> {
-    Announce(AnnounceResponse<'a>),
+pub enum SuccessResponse {
+    Announce(AnnounceResponse),
     Scrape(ScrapeResponse),
     Stats(StatsResponse),
 }
 
-impl<'a> SuccessResponse<'a> {
-    pub fn http_resp(&'a self) -> Vec<u8> {
+impl SuccessResponse {
+    pub fn http_resp(& self) -> Vec<u8> {
         match *self {
             SuccessResponse::Announce(ref a) => bencode_announce(a),
             SuccessResponse::Scrape(ref s) => bencode_scrape(s),
