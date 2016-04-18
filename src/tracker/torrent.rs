@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use time::SteadyTime;
 use time::Duration;
 
-use tracker::announce::{Announce, Action};
+use tracker::announce::{Action, Announce, AnnouncePeer};
 use tracker::peer::{Peer, Delta};
 
 pub struct Torrent {
@@ -20,9 +20,9 @@ pub struct Stats {
     pub downloaded: i64,
 }
 
-pub struct Peers<'a> {
-    pub peers4: Vec<&'a Peer>,
-    pub peers6: Vec<&'a Peer>,
+pub struct Peers {
+    pub peers4: Vec<AnnouncePeer>,
+    pub peers6: Vec<AnnouncePeer>,
 }
 
 impl Torrent {
@@ -96,14 +96,14 @@ impl Torrent {
         let mut peers6 = Vec::with_capacity(amount as usize);
         match action {
             Action::Leeching => {
-                let count = get_ips(&mut peers, &mut peers6, &self.seeders, amount);
+                let count = get_peers(&mut peers, &mut peers6, &self.seeders, amount);
                 if count == amount {
                     Peers {
                         peers4: peers,
                         peers6: peers6,
                     }
                 } else {
-                    get_ips(&mut peers, &mut peers6, &self.leechers, amount - count);
+                    get_peers(&mut peers, &mut peers6, &self.leechers, amount - count);
                     Peers {
                         peers4: peers,
                         peers6: peers6,
@@ -117,7 +117,7 @@ impl Torrent {
                 }
             }
             _ => {
-                let _count = get_ips(&mut peers, &mut peers6, &self.leechers, amount);
+                let _count = get_peers(&mut peers, &mut peers6, &self.leechers, amount);
                 Peers {
                     peers4: peers,
                     peers6: peers6,
@@ -164,9 +164,9 @@ impl Torrent {
     }
 }
 
-fn get_ips<'a>(peers: &mut Vec<&'a Peer>,
-               peers6: &mut Vec<&'a Peer>,
-               peer_dict: &'a HashMap<String, Peer>,
+fn get_peers(peers: &mut Vec<AnnouncePeer>,
+               peers6: &mut Vec<AnnouncePeer>,
+               peer_dict: &HashMap<String, Peer>,
                wanted: u8)
                -> u8 {
     let mut count = 0;
@@ -176,16 +176,16 @@ fn get_ips<'a>(peers: &mut Vec<&'a Peer>,
         }
         match (peer.ipv4, peer.ipv6) {
             (Some(_), Some(_)) => {
-                peers.push(peer);
-                peers6.push(peer);
+                peers.push(peer.get_announce_peer());
+                peers6.push(peer.get_announce_peer());
                 count += 1;
             }
             (Some(_), None) => {
-                peers.push(peer);
+                peers.push(peer.get_announce_peer());
                 count += 1;
             }
             (None, Some(_)) => {
-                peers6.push(peer);
+                peers6.push(peer.get_announce_peer());
                 count += 1;
             }
             (None, None) => {}

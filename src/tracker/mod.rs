@@ -48,12 +48,13 @@ impl Tracker {
     pub fn handle_announce(&self, announce: Announce) -> Result<SuccessResponse, ErrorResponse> {
         let mut torrents = self.unlock_torrents();
         let mut tracker_stats = self.unlock_stats();
-        if torrents.contains_key(&announce.info_hash) {
+        let torrent = if torrents.contains_key(&announce.info_hash) {
             let t = torrents.get_mut(&announce.info_hash).unwrap();
             tracker_stats.announces += 1;
             tracker_stats.peers -= t.get_peer_count();
             let _delta = t.update(&announce);
             tracker_stats.peers += t.get_peer_count();
+            t
         } else {
             tracker_stats.torrents += 1;
             tracker_stats.announces += 1;
@@ -63,8 +64,9 @@ impl Tracker {
             torrents.insert(announce.info_hash.clone(), t);
             let t = torrents.get_mut(&announce.info_hash).unwrap();
             let _delta = t.update(&announce);
-        }
-        Ok(SuccessResponse::Announce(AnnounceResponse::new(announce, torrents)))
+            t
+        };
+        Ok(SuccessResponse::Announce(AnnounceResponse::new(torrent.get_peers(announce.numwant, announce.action), torrent.get_stats(), announce.compact)))
     }
 
     pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {
