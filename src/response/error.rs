@@ -6,6 +6,7 @@ pub enum ErrorResponse {
     BadAuth,
     BadRequest,
     BadAction,
+    BadPeer,
 }
 
 impl TrackerResponse for ErrorResponse {
@@ -13,17 +14,22 @@ impl TrackerResponse for ErrorResponse {
         let resp = match *self {
             ErrorResponse::BadAuth => {
                 ben_map!{
-                    "failure reason" => ben_bytes!("Improper authentication.")
+                    "failure reason" => ben_bytes!("Improper authentication provided.")
                 }
             }
             ErrorResponse::BadRequest => {
                 ben_map!{
-                    "failure reason" => ben_bytes!("Improper request.")
+                    "failure reason" => ben_bytes!("Improper request sent.")
                 }
             }
             ErrorResponse::BadAction => {
                 ben_map!{
-                    "failure reason" => ben_bytes!("Improper action.")
+                    "failure reason" => ben_bytes!("Improper action sent.")
+                }
+            }
+            ErrorResponse::BadPeer => {
+                ben_map!{
+                    "failure reason" => ben_bytes!("Your client is not allowed.")
                 }
             }
         };

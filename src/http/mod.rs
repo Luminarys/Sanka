@@ -54,14 +54,14 @@ impl RequestHandler {
                 if false {
                     Err(ErrorResponse::BadAuth)
                 } else {
-                    self.handle_req(req, &path[1], params)
+                    self.handle_req(req, &path[1], params, Some(path[0].clone()))
                 }
             }
         } else {
             if path.len() != 1 {
                 Err(ErrorResponse::BadRequest)
             } else {
-                self.handle_req(req, &path[0], params)
+                self.handle_req(req, &path[0], params, None)
             }
         }
     }
@@ -69,92 +69,109 @@ impl RequestHandler {
     fn handle_req(&self,
                   req: &Request,
                   path: &String,
-                  params: Option<Vec<(String, String)>>)
+                  params: Option<Vec<(String, String)>>,
+                  passkey: Option<String>)
                   -> Result<SuccessResponse, ErrorResponse> {
         match &path[..] {
             "stats" => self.tracker.get_stats(),
             "announce" => {
-                let announce = try!(request_to_announce(req, params));
+                let announce = try!(self.request_to_announce(req, params, passkey));
                 self.tracker.handle_announce(announce)
             }
             "scrape" => {
-                let scrape = try!(request_to_scrape(params));
+                let scrape = try!(self.request_to_scrape(params));
                 self.tracker.handle_scrape(scrape)
             }
             _ => Err(ErrorResponse::BadAction),
         }
     }
-}
 
-fn request_to_scrape(params: Option<Vec<(String, String)>>) -> Result<Scrape, ErrorResponse> {
-    if params.is_none() {
-        return Err(ErrorResponse::BadRequest);
-    }
-    let param_vec = params.unwrap();
+    fn request_to_scrape(&self,
+                         params: Option<Vec<(String, String)>>)
+                         -> Result<Scrape, ErrorResponse> {
+        if params.is_none() {
+            return Err(ErrorResponse::BadRequest);
+        }
+        let param_vec = params.unwrap();
 
-    let hashes = param_vec.into_iter()
-                          .map(|(_, hash)| hash)
-                          .collect();
-    Ok(Scrape::new(hashes))
-}
-
-fn request_to_announce(req: &Request,
-                       params: Option<Vec<(String, String)>>)
-                       -> Result<Announce, ErrorResponse> {
-    if params.is_none() {
-        return Err(ErrorResponse::BadRequest);
-    }
-    let param_vec = params.unwrap();
-    if param_vec.len() > 10 {
-        return Err(ErrorResponse::BadRequest);
+        let hashes = param_vec.into_iter()
+                              .map(|(_, hash)| hash)
+                              .collect();
+        Ok(Scrape::new(hashes))
     }
 
-    let mut params = HashMap::new();
-    for (key, val) in param_vec {
-        params.insert(key, val);
-    }
+    fn request_to_announce(&self,
+                           req: &Request,
+                           params: Option<Vec<(String, String)>>,
+                           passkey: Option<String>)
+                           -> Result<Announce, ErrorResponse> {
+        if params.is_none() {
+            return Err(ErrorResponse::BadRequest);
+        }
+        let param_vec = params.unwrap();
+        if param_vec.len() > 10 {
+            return Err(ErrorResponse::BadRequest);
+        }
 
-    let info_hash: String = try!(get_from_params(&params, String::from("info_hash")));
-    let pid: String = try!(get_from_params(&params, String::from("peer_id")));
-    if info_hash.len() > 40 || pid.len() > 30 {
-        return Err(ErrorResponse::BadRequest);
-    }
-    let ul = try!(get_from_params(&params, String::from("uploaded")));
-    let dl = try!(get_from_params(&params, String::from("downloaded")));
-    let left = try!(get_from_params(&params, String::from("left")));
+        let mut params = HashMap::new();
+        for (key, val) in param_vec {
+            params.insert(key, val);
+        }
 
-    // IP parsing according to BEP 0007 with additional proxy forwarding check
-    let port = try!(get_from_params(&params, String::from("port")));
-    let (ipv4, ipv6) = get_ips(&params, req, &port);
-    let action = match get_from_params::<String>(&params, String::from("event")) {
-        Ok(ev_str) => {
-            match &ev_str[..] {
-                "started" => get_action(left),
-                "stopped" => Action::Stopped,
-                "completed" => Action::Completed,
-                _ => get_action(left),
+        let info_hash: String = try!(get_from_params(&params, String::from("info_hash")));
+        if cfg!(feature = "private") {
+            if !self.tracker.private.validate_torrent(&info_hash) {
+                return Err(ErrorResponse::BadAuth);
             }
         }
-        Err(_) => get_action(left),
-    };
+        let pid: String = try!(get_from_params(&params, String::from("peer_id")));
+        if cfg!(feature = "private") {
+            if !self.tracker.private.validate_peer(&pid) {
+                return Err(ErrorResponse::BadPeer);
+            }
+        }
+        if info_hash.len() > 40 || pid.len() > 30 {
+            return Err(ErrorResponse::BadRequest);
+        }
+        let ul = try!(get_from_params(&params, String::from("uploaded")));
+        let dl = try!(get_from_params(&params, String::from("downloaded")));
+        let left = try!(get_from_params(&params, String::from("left")));
 
-    let numwant = cmp::min(get_from_params::<u8>(&params, String::from("numwant")).unwrap_or(25),
-                           25);
+        // IP parsing according to BEP 0007 with additional proxy forwarding check
+        let port = try!(get_from_params(&params, String::from("port")));
+        let (ipv4, ipv6) = get_ips(&params, req, &port);
+        let action = match get_from_params::<String>(&params, String::from("event")) {
+            Ok(ev_str) => {
+                match &ev_str[..] {
+                    "started" => get_action(left),
+                    "stopped" => Action::Stopped,
+                    "completed" => Action::Completed,
+                    _ => get_action(left),
+                }
+            }
+            Err(_) => get_action(left),
+        };
 
-    let compact = get_from_params::<u8>(&params, String::from("compact")).unwrap_or(1) != 0;
+        let numwant = cmp::min(get_from_params::<u8>(&params, String::from("numwant"))
+                                   .unwrap_or(25),
+                               25);
 
-    Ok(Announce {
-        info_hash: info_hash,
-        peer_id: pid,
-        ipv4: ipv4,
-        ipv6: ipv6,
-        ul: ul,
-        dl: dl,
-        left: left,
-        action: action,
-        numwant: numwant,
-        compact: compact,
-    })
+        let compact = get_from_params::<u8>(&params, String::from("compact")).unwrap_or(1) != 0;
+
+        Ok(Announce {
+            info_hash: info_hash,
+            peer_id: pid,
+            passkey: passkey,
+            ipv4: ipv4,
+            ipv6: ipv6,
+            ul: ul,
+            dl: dl,
+            left: left,
+            action: action,
+            numwant: numwant,
+            compact: compact,
+        })
+    }
 }
 
 fn get_ips(params: &HashMap<String, String>,

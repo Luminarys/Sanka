@@ -5,6 +5,7 @@ use tracker::torrent::{Stats, Peers};
 pub struct Announce {
     pub info_hash: String,
     pub peer_id: String,
+    pub passkey: Option<String>,
     pub ipv4: Option<SocketAddrV4>,
     pub ipv6: Option<SocketAddrV6>,
     pub ul: u64,
@@ -32,7 +33,7 @@ pub struct AnnouncePeer {
 pub struct AnnounceResponse {
     peers: Peers,
     stats: Stats,
-    compact: bool
+    compact: bool,
 }
 
 impl AnnouncePeer {
@@ -51,9 +52,7 @@ impl AnnouncePeer {
     pub fn get_ipv4_str(&self) -> Option<String> {
         match self.ipv4 {
             None => None,
-            Some(sock) => {
-                Some(format!("{}", sock.ip()))
-            }
+            Some(sock) => Some(format!("{}", sock.ip())),
         }
     }
 
@@ -74,9 +73,7 @@ impl AnnouncePeer {
     pub fn get_ipv6_str(&self) -> Option<String> {
         match self.ipv6 {
             None => None,
-            Some(sock) => {
-                Some(format!("{}", sock.ip()))
-            }
+            Some(sock) => Some(format!("{}", sock.ip())),
         }
     }
 }

@@ -10,6 +10,7 @@ use self::scrape::{ScrapeResponse, Scrape};
 use self::stats::{Stats, StatsResponse};
 use response::error::ErrorResponse;
 use response::success::SuccessResponse;
+use private::PrivateTracker;
 
 use std::sync::{Mutex, MutexGuard};
 use std::collections::HashMap;
@@ -19,15 +20,18 @@ use time::Duration;
 pub struct Tracker {
     pub torrents: Mutex<HashMap<String, Torrent>>,
     pub stats: Mutex<Stats>,
+    pub private: PrivateTracker,
 }
 
 impl Tracker {
     pub fn new() -> Tracker {
         let torrents: Mutex<HashMap<String, Torrent>> = Mutex::new(Default::default());
         let stats = Mutex::new(Stats::new());
+        let private = PrivateTracker::new();
         Tracker {
             torrents: torrents,
             stats: stats,
+            private: private
         }
     }
 
@@ -52,7 +56,10 @@ impl Tracker {
             let t = torrents.get_mut(&announce.info_hash).unwrap();
             tracker_stats.announces += 1;
             tracker_stats.peers -= t.get_peer_count();
-            let _delta = t.update(&announce);
+            let delta = t.update(&announce);
+            if cfg!(feature = "private") {
+                self.private.add_announce(delta);
+            }
             tracker_stats.peers += t.get_peer_count();
             t
         } else {
@@ -63,7 +70,10 @@ impl Tracker {
             let t = Torrent::new(announce.info_hash.clone());
             torrents.insert(announce.info_hash.clone(), t);
             let t = torrents.get_mut(&announce.info_hash).unwrap();
-            let _delta = t.update(&announce);
+            let delta = t.update(&announce);
+            if cfg!(feature = "private") {
+                self.private.add_announce(delta);
+            }
             t
         };
         Ok(SuccessResponse::Announce(AnnounceResponse::new(torrent.get_peers(announce.numwant, announce.action), torrent.get_stats(), announce.compact)))

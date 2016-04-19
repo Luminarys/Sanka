@@ -32,6 +32,7 @@ fn main() {
 
     let handler = http::RequestHandler::new(tracker_http);
     let _guard = server.handle(handler).unwrap();
+
     thread::spawn(move || {
         info!("Starting reaper!");
         loop {
@@ -39,5 +40,24 @@ fn main() {
             tracker_reap.reap();
         }
     });
+
+    if cfg!(feature = "private") {
+        let tracker_priv_flush = tracker_arc.clone();
+        thread::spawn(move || {
+            info!("Starting delta flusher!");
+            loop {
+                thread::sleep(Duration::from_secs(5));
+                tracker_priv_flush.private.flush();
+            }
+        });
+        let tracker_priv_update = tracker_arc.clone();
+        thread::spawn(move || {
+            info!("Starting private updater!");
+            loop {
+                thread::sleep(Duration::from_secs(1800));
+                tracker_priv_update.private.update();
+            }
+        });
+    }
     info!("Listening on port 8000");
 }

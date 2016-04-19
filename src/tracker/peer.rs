@@ -18,6 +18,7 @@ pub struct Delta {
     pub upload: u64,
     pub download: u64,
     pub left: u64,
+    pub passkey: Option<String>,
 }
 
 impl Peer {
@@ -51,6 +52,7 @@ impl Peer {
             } else {
                 0
             },
+            passkey: a.passkey.clone(),
         };
         self.uploaded = a.ul;
         self.downloaded = a.dl;
@@ -71,12 +73,13 @@ impl Peer {
 }
 
 impl Delta {
-    pub fn new(peer_id: String) -> Delta {
+    pub fn new(peer_id: String, passkey: Option<String>) -> Delta {
         Delta {
             peer_id: peer_id,
             upload: 0,
             download: 0,
             left: 0,
+            passkey: passkey,
         }
     }
 }

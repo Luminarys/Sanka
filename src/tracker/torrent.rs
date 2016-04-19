@@ -44,22 +44,22 @@ impl Torrent {
                 if self.seeders.contains_key(&a.peer_id) {
                     match self.seeders.get_mut(&a.peer_id) {
                         Some(peer) => peer.update(&a),
-                        None => Delta::new(a.peer_id.clone()),
+                        None => Delta::new(a.peer_id.clone(), announce.passkey.clone()),
                     }
                 } else {
                     self.seeders.insert(a.peer_id.clone(), Peer::new(&a));
-                    Delta::new(a.peer_id.clone())
+                    Delta::new(a.peer_id.clone(), announce.passkey.clone())
                 }
             }
             Action::Leeching => {
                 if self.leechers.contains_key(&a.peer_id) {
                     match self.leechers.get_mut(&a.peer_id) {
                         Some(peer) => peer.update(&a),
-                        None => Delta::new(a.peer_id.clone()),
+                        None => Delta::new(a.peer_id.clone(), announce.passkey.clone()),
                     }
                 } else {
                     self.leechers.insert(a.peer_id.clone(), Peer::new(&a));
-                    Delta::new(a.peer_id.clone())
+                    Delta::new(a.peer_id.clone(), announce.passkey.clone())
                 }
             }
             Action::Completed => {
@@ -77,7 +77,7 @@ impl Torrent {
                        self.seeders.remove(&a.peer_id)) {
                     (Some(ref mut peer), _) => peer.update(&a),
                     (_, Some(ref mut peer)) => peer.update(&a),
-                    (None, None) => Delta::new(a.peer_id.clone()),
+                    (None, None) => Delta::new(a.peer_id.clone(), announce.passkey.clone()),
                 }
             }
         }
@@ -165,10 +165,10 @@ impl Torrent {
 }
 
 fn get_peers(peers: &mut Vec<AnnouncePeer>,
-               peers6: &mut Vec<AnnouncePeer>,
-               peer_dict: &HashMap<String, Peer>,
-               wanted: u8)
-               -> u8 {
+             peers6: &mut Vec<AnnouncePeer>,
+             peer_dict: &HashMap<String, Peer>,
+             wanted: u8)
+             -> u8 {
     let mut count = 0;
     for peer in peer_dict.values() {
         if count == wanted {
