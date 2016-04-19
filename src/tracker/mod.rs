@@ -76,7 +76,9 @@ impl Tracker {
             }
             t
         };
-        Ok(SuccessResponse::Announce(AnnounceResponse::new(torrent.get_peers(announce.numwant, announce.action), torrent.get_stats(), announce.compact)))
+        let peers = torrent.get_peers(announce.numwant, announce.action);
+        let stats = torrent.get_stats();
+        Ok(SuccessResponse::Announce(AnnounceResponse::new(peers, stats, announce.compact)))
     }
 
     pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {
