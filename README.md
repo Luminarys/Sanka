@@ -4,9 +4,9 @@ It currently offers:
 * Full public tracker support
 * IPv6 support according to BEP 7
 * Basic statistics
+* Private tracker support
 
 Currently planned features:
-* Private tracker support
 * UDP tracker support
 * More extensive metrics
 * Optional configuration via compile time flags to minimize performance penalties
