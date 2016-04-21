@@ -12,10 +12,10 @@ use response::error::ErrorResponse;
 use response::success::SuccessResponse;
 use private::PrivateTracker;
 
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
+use std::thread;
 use time::SteadyTime;
-use time::Duration;
 
 pub struct Tracker {
     pub torrents: Mutex<HashMap<String, Torrent>>,
@@ -32,6 +32,38 @@ impl Tracker {
             torrents: torrents,
             stats: stats,
             private: private
+        }
+    }
+
+    pub fn start_updaters(tracker: Arc<Tracker>) {
+        use std::time::Duration;
+
+        let tracker_reap = tracker.clone();
+        thread::spawn(move || {
+            info!("Starting reaper!");
+            loop {
+                thread::sleep(Duration::from_secs(1800));
+                tracker_reap.reap();
+            }
+        });
+
+        if cfg!(feature = "private") {
+            let tracker_priv_flush = tracker.clone();
+            thread::spawn(move || {
+                info!("Starting delta flusher!");
+                loop {
+                    thread::sleep(Duration::from_secs(5));
+                    tracker_priv_flush.private.flush();
+                }
+            });
+            let tracker_priv_update = tracker.clone();
+            thread::spawn(move || {
+                info!("Starting private updater!");
+                loop {
+                    thread::sleep(Duration::from_secs(1800));
+                    tracker_priv_update.private.update();
+                }
+            });
         }
     }
 
@@ -106,6 +138,7 @@ impl Tracker {
     }
 
     pub fn reap(&self) {
+        use time::Duration;
         // Clear stats
         let mut stats = self.unlock_stats();
         stats.update();

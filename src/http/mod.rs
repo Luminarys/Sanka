@@ -1,11 +1,12 @@
-use tracker::Tracker;
 use response::TrackerResponse;
 use response::error::ErrorResponse;
 use response::success::SuccessResponse;
+use tracker::Tracker;
 use tracker::announce::{Action, Announce};
 use tracker::scrape::Scrape;
 
 use hyper::server::{Request, Response, Handler};
+use hyper::Server;
 use hyper::uri::RequestUri::AbsolutePath;
 use std::net::{IpAddr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::collections::HashMap;
@@ -16,12 +17,6 @@ use std::cmp;
 
 pub struct RequestHandler {
     pub tracker: Arc<Tracker>,
-}
-
-impl RequestHandler {
-    pub fn new(tracker: Arc<Tracker>) -> RequestHandler {
-        RequestHandler { tracker: tracker }
-    }
 }
 
 impl Handler for RequestHandler {
@@ -39,6 +34,13 @@ impl Handler for RequestHandler {
 }
 
 impl RequestHandler {
+    pub fn start(tracker: Arc<Tracker>) {
+        let server = Server::http("127.0.0.1:8000").unwrap();
+        let handler = RequestHandler { tracker: tracker };
+        let _guard = server.handle(handler).unwrap();
+        info!("HTTP interface listening on port 8000");
+    }
+
     fn handle_url(&self, req: &Request, url: Url) -> Result<SuccessResponse, ErrorResponse> {
         if url.path().is_none() {
             return Err(ErrorResponse::BadAction);
