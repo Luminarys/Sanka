@@ -14,6 +14,7 @@ mod tracker;
 mod http;
 mod response;
 mod private;
+mod config;
 
 use tracker::Tracker;
 use std::sync::Arc;
@@ -22,8 +23,15 @@ fn main() {
     if cfg!(debug_assertions) {
         env_logger::init().unwrap();
     }
-    let tracker = Tracker::new();
+    let toml = r#"
+    [test]
+    foo = "bar"
+"#;
+
+    let value = toml::Parser::new(toml).parse().unwrap();
+    println!("{:?}", value);
+    let tracker = Tracker::default();
     let tracker_arc = Arc::new(tracker);
     Tracker::start_updaters(tracker_arc.clone());
-    http::RequestHandler::start(tracker_arc.clone());
+    http::RequestHandler::start(tracker_arc.clone(), Default::default());
 }

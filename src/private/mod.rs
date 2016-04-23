@@ -1,17 +1,25 @@
+use config::PrivateConfig;
+use tracker::peer::Delta;
+
 use std::sync::{RwLock, Mutex};
 use std::collections::HashSet;
 use std::mem;
-
-use tracker::peer::Delta;
 
 pub struct PrivateTracker {
     deltas: Mutex<Vec<Delta>>,
     torrents: RwLock<HashSet<String>>,
     peers: RwLock<Vec<String>>,
+    config: PrivateConfig
+}
+
+impl Default for PrivateTracker {
+    fn default() -> PrivateTracker {
+        PrivateTracker::new(Default::default())
+    }
 }
 
 impl PrivateTracker {
-    pub fn new() -> PrivateTracker {
+    pub fn new(config: PrivateConfig) -> PrivateTracker {
         let deltas = Mutex::new(Default::default());
         let torrents = RwLock::new(Default::default());
         let peers = RwLock::new(Default::default());
@@ -22,6 +30,7 @@ impl PrivateTracker {
             deltas: deltas,
             torrents: torrents,
             peers: peers,
+            config: config
         }
     }
 

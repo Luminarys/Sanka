@@ -11,6 +11,7 @@ use self::stats::{Stats, StatsResponse};
 use response::error::ErrorResponse;
 use response::success::SuccessResponse;
 use private::PrivateTracker;
+use config::{TrackerConfig, PrivateConfig};
 
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
@@ -21,17 +22,25 @@ pub struct Tracker {
     pub torrents: Mutex<HashMap<String, Torrent>>,
     pub stats: Mutex<Stats>,
     pub private: PrivateTracker,
+    config: TrackerConfig,
+}
+
+impl Default for Tracker {
+    fn default() -> Tracker {
+        Tracker::new(Default::default(), Default::default())
+    }
 }
 
 impl Tracker {
-    pub fn new() -> Tracker {
+    pub fn new(config: TrackerConfig, pconfig: PrivateConfig) -> Tracker {
         let torrents: Mutex<HashMap<String, Torrent>> = Mutex::new(Default::default());
         let stats = Mutex::new(Stats::new());
-        let private = PrivateTracker::new();
+        let private = PrivateTracker::new(pconfig);
         Tracker {
             torrents: torrents,
             stats: stats,
-            private: private
+            private: private,
+            config: config
         }
     }
 

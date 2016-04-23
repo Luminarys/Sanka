@@ -4,6 +4,7 @@ use response::success::SuccessResponse;
 use tracker::Tracker;
 use tracker::announce::{Action, Announce};
 use tracker::scrape::Scrape;
+use config::HttpConfig;
 
 use hyper::server::{Request, Response, Handler};
 use hyper::Server;
@@ -17,6 +18,7 @@ use std::cmp;
 
 pub struct RequestHandler {
     pub tracker: Arc<Tracker>,
+    config: HttpConfig
 }
 
 impl Handler for RequestHandler {
@@ -34,11 +36,11 @@ impl Handler for RequestHandler {
 }
 
 impl RequestHandler {
-    pub fn start(tracker: Arc<Tracker>) {
-        let server = Server::http("127.0.0.1:8000").unwrap();
-        let handler = RequestHandler { tracker: tracker };
+    pub fn start(tracker: Arc<Tracker>, config: HttpConfig) {
+        let server = Server::http(config.listen_addr.as_str()).unwrap();
+        let handler = RequestHandler { tracker: tracker, config: config };
         let _guard = server.handle(handler).unwrap();
-        info!("HTTP interface listening on port 8000");
+        info!("HTTP interface started!");
     }
 
     fn handle_url(&self, req: &Request, url: Url) -> Result<SuccessResponse, ErrorResponse> {
