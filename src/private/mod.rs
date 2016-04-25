@@ -9,7 +9,7 @@ pub struct PrivateTracker {
     deltas: Mutex<Vec<Delta>>,
     torrents: RwLock<HashSet<String>>,
     peers: RwLock<Vec<String>>,
-    config: PrivateConfig
+    pub config: PrivateConfig
 }
 
 impl Default for PrivateTracker {

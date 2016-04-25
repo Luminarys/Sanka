@@ -126,13 +126,13 @@ impl Torrent {
         }
     }
 
-    pub fn reap(&mut self) {
+    pub fn reap(&mut self, min_update_int: &Duration) {
         // TODO use a config value for the max time
         let to_del: Vec<_> = self.leechers
                                  .iter()
                                  .filter_map(|(k, peer)| {
                                      if SteadyTime::now() - peer.last_action >
-                                        Duration::seconds(3600) {
+                                        *min_update_int {
                                          Some(k.clone())
                                      } else {
                                          None
@@ -147,7 +147,7 @@ impl Torrent {
                                  .iter()
                                  .filter_map(|(k, peer)| {
                                      if SteadyTime::now() - peer.last_action >
-                                        Duration::seconds(3600) {
+                                        *min_update_int {
                                          Some(k.clone())
                                      } else {
                                          None

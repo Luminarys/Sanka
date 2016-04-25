@@ -1,16 +1,17 @@
-use std::time::Duration;
+use time;
+use std;
 
 pub struct TrackerConfig {
-    reap_interval: Duration,
-    min_announce_interval: Duration,
-    announce_interval: Duration,
-    min_torrent_update_interval: Duration,
-    min_peer_update_interval: Duration,
+    pub reap_interval: std::time::Duration,
+    pub announce_interval: std::time::Duration,
+    pub min_announce_interval: std::time::Duration,
+    pub min_torrent_update_interval: time::Duration,
+    pub min_peer_update_interval: time::Duration,
 }
 
 pub struct PrivateConfig {
-    flush_interval: Duration,
-    update_interval: Duration,
+    pub flush_interval: std::time::Duration,
+    pub update_interval: std::time::Duration,
 }
 
 pub struct HttpConfig {
@@ -20,11 +21,11 @@ pub struct HttpConfig {
 impl Default for TrackerConfig {
     fn default() -> TrackerConfig {
         TrackerConfig {
-            reap_interval: Duration::from_secs(120),
-            min_announce_interval: Duration::from_secs(900),
-            announce_interval: Duration::from_secs(1800),
-            min_torrent_update_interval: Duration::from_secs(2000),
-            min_peer_update_interval: Duration::from_secs(2000),
+            reap_interval: std::time::Duration::from_secs(120),
+            announce_interval: std::time::Duration::from_secs(1800),
+            min_announce_interval: std::time::Duration::from_secs(900),
+            min_torrent_update_interval: time::Duration::seconds(2000),
+            min_peer_update_interval: time::Duration::seconds(2000),
         }
     }
 }
@@ -32,8 +33,8 @@ impl Default for TrackerConfig {
 impl Default for PrivateConfig {
     fn default() -> PrivateConfig {
         PrivateConfig {
-            flush_interval: Duration::from_secs(5),
-            update_interval: Duration::from_secs(900),
+            flush_interval: std::time::Duration::from_secs(5),
+            update_interval: std::time::Duration::from_secs(900),
         }
     }
 }

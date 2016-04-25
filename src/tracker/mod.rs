@@ -22,7 +22,7 @@ pub struct Tracker {
     pub torrents: Mutex<HashMap<String, Torrent>>,
     pub stats: Mutex<Stats>,
     pub private: PrivateTracker,
-    config: TrackerConfig,
+    pub config: TrackerConfig,
 }
 
 impl Default for Tracker {
@@ -40,18 +40,16 @@ impl Tracker {
             torrents: torrents,
             stats: stats,
             private: private,
-            config: config
+            config: config,
         }
     }
 
     pub fn start_updaters(tracker: Arc<Tracker>) {
-        use std::time::Duration;
-
         let tracker_reap = tracker.clone();
         thread::spawn(move || {
             info!("Starting reaper!");
             loop {
-                thread::sleep(Duration::from_secs(1800));
+                thread::sleep(tracker_reap.config.reap_interval);
                 tracker_reap.reap();
             }
         });
@@ -61,7 +59,7 @@ impl Tracker {
             thread::spawn(move || {
                 info!("Starting delta flusher!");
                 loop {
-                    thread::sleep(Duration::from_secs(5));
+                    thread::sleep(tracker_priv_flush.private.config.flush_interval);
                     tracker_priv_flush.private.flush();
                 }
             });
@@ -69,7 +67,7 @@ impl Tracker {
             thread::spawn(move || {
                 info!("Starting private updater!");
                 loop {
-                    thread::sleep(Duration::from_secs(1800));
+                    thread::sleep(tracker_priv_update.private.config.update_interval);
                     tracker_priv_update.private.update();
                 }
             });
@@ -119,7 +117,11 @@ impl Tracker {
         };
         let peers = torrent.get_peers(announce.numwant, announce.action);
         let stats = torrent.get_stats();
-        Ok(SuccessResponse::Announce(AnnounceResponse::new(peers, stats, announce.compact)))
+        Ok(SuccessResponse::Announce(AnnounceResponse::new(peers,
+                                                           stats,
+                                                           announce.compact,
+                                                           self.config.announce_interval,
+                                                           self.config.min_announce_interval)))
     }
 
     pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {
@@ -147,43 +149,42 @@ impl Tracker {
     }
 
     pub fn reap(&self) {
-        use time::Duration;
         // Clear stats
         let mut stats = self.unlock_stats();
         stats.update();
         // Delete torrents which are too old, and reap peers for the others.
         let to_del: Vec<_> = self.unlock_torrents()
-            .iter()
-            .filter_map(|(k, torrent)| {
-                if SteadyTime::now() - torrent.last_action >
-                    Duration::seconds(3600) {
-                        Some(k.clone())
-                    } else {
-                        None
-                    }
-            })
-        .collect();
+                                 .iter()
+                                 .filter_map(|(k, torrent)| {
+                                     if SteadyTime::now() - torrent.last_action >
+                                        self.config.min_torrent_update_interval {
+                                         Some(k.clone())
+                                     } else {
+                                         None
+                                     }
+                                 })
+                                 .collect();
         for torrent in to_del {
             stats.torrents -= 1;
             self.unlock_torrents().remove(&torrent);
         }
 
         let to_reap: Vec<_> = self.unlock_torrents()
-            .iter()
-            .filter_map(|(k, torrent)| {
-                if SteadyTime::now() - torrent.last_action >
-                    Duration::seconds(3600) {
-                        None
-                    } else {
-                        Some(k.clone())
-                    }
-            })
-        .collect();
+                                  .iter()
+                                  .filter_map(|(k, torrent)| {
+                                      if SteadyTime::now() - torrent.last_action >
+                                         self.config.min_torrent_update_interval {
+                                          None
+                                      } else {
+                                          Some(k.clone())
+                                      }
+                                  })
+                                  .collect();
         stats.peers = 0;
         for info_hash in to_reap {
             match self.unlock_torrents().get_mut(&info_hash) {
                 Some(ref mut t) => {
-                    t.reap();
+                    t.reap(&self.config.min_peer_update_interval);
                     stats.peers += t.get_peer_count();
                 }
                 None => {}

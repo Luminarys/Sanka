@@ -1,4 +1,5 @@
 use std::net::{SocketAddrV4, SocketAddrV6};
+use std::time::Duration;
 
 use tracker::torrent::{Stats, Peers};
 
@@ -34,6 +35,8 @@ pub struct AnnounceResponse {
     peers: Peers,
     stats: Stats,
     compact: bool,
+    pub announce_int: Duration,
+    pub min_announce_int: Duration
 }
 
 impl AnnouncePeer {
@@ -83,11 +86,13 @@ fn u16_to_u8(i: u16) -> Vec<u8> {
 }
 
 impl AnnounceResponse {
-    pub fn new(peers: Peers, stats: Stats, compact: bool) -> AnnounceResponse {
+    pub fn new(peers: Peers, stats: Stats, compact: bool, announce_int: Duration, min_announce_int: Duration) -> AnnounceResponse {
         AnnounceResponse {
             peers: peers,
             stats: stats,
             compact: compact,
+            announce_int: announce_int,
+            min_announce_int: min_announce_int,
         }
     }
 

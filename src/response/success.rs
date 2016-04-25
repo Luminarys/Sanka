@@ -39,8 +39,8 @@ fn bencode_announce(a: &AnnounceResponse) -> Vec<u8> {
         let benc = ben_map!{
            "peers" => ben_bytes!(&peer_bytes),
            "peers6" => ben_bytes!(&peer6_bytes),
-           "interval" => ben_int!(1800),
-           "min interval" => ben_int!(900),
+           "interval" => ben_int!(a.announce_int.as_secs() as i64),
+           "min interval" => ben_int!(a.min_announce_int.as_secs() as i64),
            "complete" => ben_int!(stats.complete),
            "downloaded" => ben_int!(stats.downloaded),
            "incomplete" => ben_int!(stats.incomplete)
