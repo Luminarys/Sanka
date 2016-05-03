@@ -44,6 +44,7 @@ pub struct TrackerConfig {
 pub struct PrivateConfig {
     pub flush_interval: std::time::Duration,
     pub update_interval: std::time::Duration,
+    pub extra: Option<Table>,
 }
 
 #[derive(Clone)]
@@ -105,6 +106,7 @@ impl Default for PrivateConfig {
         PrivateConfig {
             flush_interval: std::time::Duration::from_secs(5),
             update_interval: std::time::Duration::from_secs(900),
+            extra: None,
         }
     }
 }
@@ -124,6 +126,7 @@ impl PrivateConfig {
                 PrivateConfig {
                     flush_interval: flush_interval,
                     update_interval: update_interval,
+                    extra: Some(t.clone())
                 }
             }
             _ => Default::default()

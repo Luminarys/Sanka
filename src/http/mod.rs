@@ -55,8 +55,7 @@ impl RequestHandler {
             if path.len() != 2 {
                 Err(ErrorResponse::BadRequest)
             } else {
-                // Do key validation
-                if false {
+                if self.tracker.private.validate_passkey(&path[0]) {
                     Err(ErrorResponse::BadAuth)
                 } else {
                     self.handle_req(req, &path[1], params, Some(path[0].clone()))
