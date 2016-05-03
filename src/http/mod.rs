@@ -18,13 +18,14 @@ use std::cmp;
 
 pub struct RequestHandler {
     pub tracker: Arc<Tracker>,
-    config: HttpConfig
+    pub config: HttpConfig
 }
 
 impl Handler for RequestHandler {
     fn handle(&self, req: Request, res: Response) {
         let resp = match req.uri {
             AbsolutePath(ref path) => {
+                println!("Req!");
                 let base = Url::parse("http://localhost").unwrap();
                 let url = UrlParser::new().base_url(&base).parse(path).unwrap();
                 self.handle_url(&req, url)
@@ -39,8 +40,8 @@ impl RequestHandler {
     pub fn start(tracker: Arc<Tracker>, config: HttpConfig) {
         let server = Server::http(config.listen_addr.as_str()).unwrap();
         let handler = RequestHandler { tracker: tracker, config: config };
+        info!("HTTP interface listening on {}!", handler.config.listen_addr);
         let _guard = server.handle(handler).unwrap();
-        info!("HTTP interface started!");
     }
 
     fn handle_url(&self, req: &Request, url: Url) -> Result<SuccessResponse, ErrorResponse> {

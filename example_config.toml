@@ -1,0 +1,13 @@
+[tracker]
+reap_interval = 120
+announce_interval = 1800
+min_announce_interval = 900
+min_torrent_update_interval = 2000
+min_peer_update_interval = 2000
+
+[private]
+flush_interval = 5
+update_interval = 900
+
+[http]
+listen_addr = "127.0.0.1:8000"
