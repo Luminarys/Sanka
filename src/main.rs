@@ -54,7 +54,10 @@ fn main() {
         })
         .map_or(None, |s| toml::Parser::new(&s).parse())
         .map_or(None, |toml| Some(MainConfig::from_toml(toml)))
-        .unwrap_or_default();
+        .unwrap_or_else(|| {
+            println!("No config file provided, or failed to parse config file! Falling back to default config.");
+            Default::default()
+        });
 
     run_tracker(config);
 }
