@@ -177,7 +177,7 @@ impl RequestHandler {
 
         if cfg!(feature = "private") {
             match self.tracker.private.validate_announce(&announce) {
-                Some(e)  => return Err(ErrorResponse::BadPeer),
+                Some(e)  => return Err(e),
                 None => ()
             }
         }

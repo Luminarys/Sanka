@@ -7,6 +7,7 @@ use std::sync::{RwLock, Mutex};
 use std::collections::HashSet;
 use std::mem;
 
+#[allow(dead_code, unused_variables)]
 pub struct PrivateTracker {
     deltas: Mutex<Vec<Delta>>,
     torrents: RwLock<HashSet<String>>,
@@ -21,6 +22,7 @@ impl Default for PrivateTracker {
     }
 }
 
+#[allow(unused_variables)]
 impl PrivateTracker {
     pub fn new(config: PrivateConfig) -> PrivateTracker {
         let deltas = Mutex::new(Default::default());

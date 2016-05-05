@@ -1,4 +1,5 @@
-# Sanka
+# Sanka [![Build Status](https://travis-ci.org/Luminarys/Sanka.svg?branch=master)](https://travis-ci.org/Luminarys/Sanka)
+
 Sanka is a bittorrent tracker built with both features, extensibility, and performance in mind.
 It currently offers:
 * Full public tracker support

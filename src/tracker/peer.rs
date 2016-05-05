@@ -86,8 +86,6 @@ impl Delta {
 
 #[test]
 fn create_from_announce() {
-    use std::net::{SocketAddrV4, SocketAddrV6};
-    use tracker::torrent::Peers;
     use tracker::announce::Action;
 
     let pid = String::from("pid");
@@ -121,7 +119,6 @@ fn create_from_announce() {
 
 #[test]
 fn peer_update() {
-    use tracker::torrent::Peers;
     use tracker::announce::Action;
 
     let pid = String::from("pid");
