@@ -1,5 +1,7 @@
 use config::PrivateConfig;
 use tracker::peer::Delta;
+use tracker::announce::Announce;
+use response::error::ErrorResponse;
 
 use std::sync::{RwLock, Mutex};
 use std::collections::HashSet;
@@ -70,6 +72,11 @@ impl PrivateTracker {
     pub fn validate_torrent(&self, hash: &String) -> bool {
         // Fill in implementation here
         true
+    }
+
+    pub fn validate_announce(&self, announce: &Announce) -> Option<ErrorResponse> {
+        // Fill in implementation here
+        None
     }
 
     pub fn update(&self) {

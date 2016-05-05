@@ -5,9 +5,9 @@ use std::net::{SocketAddrV4, SocketAddrV6};
 
 pub struct Peer {
     pub id: String,
-    uploaded: u64,
-    downloaded: u64,
-    left: u64,
+    pub uploaded: u64,
+    pub downloaded: u64,
+    pub left: u64,
     pub last_action: SteadyTime,
     pub ipv4: Option<SocketAddrV4>,
     pub ipv6: Option<SocketAddrV6>,
@@ -82,4 +82,94 @@ impl Delta {
             passkey: passkey,
         }
     }
+}
+
+#[test]
+fn create_from_announce() {
+    use std::net::{SocketAddrV4, SocketAddrV6};
+    use tracker::torrent::Peers;
+    use tracker::announce::Action;
+
+    let pid = String::from("pid");
+    let ipv4 = None;
+    let ipv6 = None;
+    let ul = 1;
+    let dl = 1;
+    let left = 1;
+    let announce =
+        Announce {
+            info_hash: String::from("hash"),
+            peer_id: pid.clone(),
+            passkey: None,
+            ipv4: ipv4.clone(),
+            ipv6: ipv6.clone(),
+            ul: ul,
+            dl: dl,
+            left: left,
+            action: Action::Seeding,
+            numwant: 1,
+            compact: true,
+        };
+    let peer = Peer::new(&announce);
+    assert!(peer.uploaded == ul);
+    assert!(peer.downloaded == dl);
+    assert!(peer.left == left);
+    assert!(peer.id == pid);
+    assert!(peer.ipv4 == ipv4);
+    assert!(peer.ipv6 == ipv6);
+}
+
+#[test]
+fn peer_update() {
+    use tracker::torrent::Peers;
+    use tracker::announce::Action;
+
+    let pid = String::from("pid");
+    let ipv4 = None;
+    let ipv6 = None;
+    let ul = 1;
+    let dl = 1;
+    let left = 1;
+
+    let announce =
+        Announce {
+            info_hash: String::from("hash"),
+            peer_id: pid.clone(),
+            passkey: None,
+            ipv4: ipv4.clone(),
+            ipv6: ipv6.clone(),
+            ul: ul,
+            dl: dl,
+            left: left,
+            action: Action::Seeding,
+            numwant: 1,
+            compact: true,
+        };
+
+    let ipv4 = None;
+    let ipv6 = None;
+    let ul_2 = 2;
+    let dl_2 = 2;
+    let left_2 = 0;
+
+    let announce2 =
+        Announce {
+            info_hash: String::from("hash"),
+            peer_id: pid.clone(),
+            passkey: None,
+            ipv4: ipv4.clone(),
+            ipv6: ipv6.clone(),
+            ul: ul_2,
+            dl: dl_2,
+            left: left_2,
+            action: Action::Seeding,
+            numwant: 1,
+            compact: true,
+        };
+    let mut peer = Peer::new(&announce);
+    let delta = peer.update(&announce2);
+
+    assert!(delta.upload == ul_2 - ul);
+    assert!(delta.download == dl_2 - dl);
+    assert!(delta.left == left - left_2);
 }

@@ -161,8 +161,7 @@ impl RequestHandler {
                                25);
 
         let compact = get_from_params::<u8>(&params, String::from("compact")).unwrap_or(1) != 0;
-
-        Ok(Announce {
+        let announce = Announce {
             info_hash: info_hash,
             peer_id: pid,
             passkey: passkey,
@@ -174,7 +173,16 @@ impl RequestHandler {
             action: action,
             numwant: numwant,
             compact: compact,
-        })
+        };
+
+        if cfg!(feature = "private") {
+            match self.tracker.private.validate_announce(&announce) {
+                Some(e)  => return Err(ErrorResponse::BadPeer),
+                None => ()
+            }
+        }
+
+        Ok(announce)
     }
 }
 
