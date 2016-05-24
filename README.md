@@ -12,7 +12,7 @@ It currently offers:
 
 ## Installation
     1. git clone https://github.com/Luminarys/Sanka.git && cd Sanka
-    2. Configure your features in Cargo.toml. In the features section you may remove "stats" or add "private". If you do want to use private tracker features, it's recommended you write an implementation in private.rs or use an existing implentation.
+    2. Configure your features in Cargo.toml. In the features section you may remove "stats" or add "private". If you do want to use private tracker features, it's recommended you write an implementation in private.rs or use an existing implementation.
     3. cargo build --release
     4. The generated executable is located at target/release/sanka
 

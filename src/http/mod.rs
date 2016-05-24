@@ -25,7 +25,6 @@ impl Handler for RequestHandler {
     fn handle(&self, req: Request, res: Response) {
         let resp = match req.uri {
             AbsolutePath(ref path) => {
-                println!("Req!");
                 let base = Url::parse("http://localhost").unwrap();
                 let url = UrlParser::new().base_url(&base).parse(path).unwrap();
                 self.handle_url(&req, url)

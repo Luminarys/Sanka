@@ -4,6 +4,7 @@ extern crate time;
 extern crate env_logger;
 extern crate getopts;
 extern crate toml;
+extern crate parking_lot;
 
 #[macro_use]
 extern crate bip_bencode;
@@ -31,7 +32,7 @@ fn main() {
     let program = args[0].clone();
 
     let mut opts = Options::new();
-    opts.optflag("h", "help", "print this help menu");
+    opts.optflag("h", "help", "print the help menu");
     opts.optopt("c", "config", "path to config file", "/path/to/config.toml");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }

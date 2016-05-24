@@ -13,7 +13,8 @@ use response::success::SuccessResponse;
 use private::PrivateTracker;
 use config::{TrackerConfig, PrivateConfig};
 
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::thread;
 use time::SteadyTime;
@@ -74,23 +75,9 @@ impl Tracker {
         }
     }
 
-    fn unlock_stats(&self) -> MutexGuard<Stats> {
-        match self.stats.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        }
-    }
-
-    fn unlock_torrents(&self) -> MutexGuard<HashMap<String, Torrent>> {
-        match self.torrents.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        }
-    }
-
     pub fn handle_announce(&self, announce: Announce) -> Result<SuccessResponse, ErrorResponse> {
-        let mut torrents = self.unlock_torrents();
-        let mut tracker_stats = self.unlock_stats();
+        let mut torrents = self.torrents.lock();
+        let mut tracker_stats = self.stats.lock();
         let torrent = if torrents.contains_key(&announce.info_hash) {
             let t = torrents.get_mut(&announce.info_hash).unwrap();
             tracker_stats.announces += 1;
@@ -127,7 +114,7 @@ impl Tracker {
     pub fn handle_scrape(&self, scrape: Scrape) -> Result<SuccessResponse, ErrorResponse> {
         let mut torrents = HashMap::new();
         for hash in scrape.torrents {
-            match self.unlock_torrents().get(&hash) {
+            match self.torrents.lock().get(&hash) {
                 Some(ref t) => {
                     let stats = t.get_stats();
                     torrents.insert(hash.clone(), stats);
@@ -136,24 +123,24 @@ impl Tracker {
             };
         }
 
-        let mut tracker_stats = self.unlock_stats();
+        let mut tracker_stats = self.stats.lock();
         tracker_stats.scrapes += 1;
 
         Ok(SuccessResponse::Scrape(ScrapeResponse { torrents: torrents }))
     }
 
     pub fn get_stats(&self) -> Result<SuccessResponse, ErrorResponse> {
-        let ref stats = *self.unlock_stats();
+        let ref stats = *self.stats.lock();
         let resp = StatsResponse::new(stats);
         Ok(SuccessResponse::Stats(resp))
     }
 
     pub fn reap(&self) {
         // Clear stats
-        let mut stats = self.unlock_stats();
+        let mut stats = self.stats.lock();
         stats.update();
         // Delete torrents which are too old, and reap peers for the others.
-        let to_del: Vec<_> = self.unlock_torrents()
+        let to_del: Vec<_> = self.torrents.lock()
                                  .iter()
                                  .filter_map(|(k, torrent)| {
                                      if SteadyTime::now() - torrent.last_action >
@@ -166,10 +153,10 @@ impl Tracker {
                                  .collect();
         for torrent in to_del {
             stats.torrents -= 1;
-            self.unlock_torrents().remove(&torrent);
+            self.torrents.lock().remove(&torrent);
         }
 
-        let to_reap: Vec<_> = self.unlock_torrents()
+        let to_reap: Vec<_> = self.torrents.lock()
                                   .iter()
                                   .filter_map(|(k, torrent)| {
                                       if SteadyTime::now() - torrent.last_action >
@@ -182,7 +169,7 @@ impl Tracker {
                                   .collect();
         stats.peers = 0;
         for info_hash in to_reap {
-            match self.unlock_torrents().get_mut(&info_hash) {
+            match self.torrents.lock().get_mut(&info_hash) {
                 Some(ref mut t) => {
                     t.reap(&self.config.min_peer_update_interval);
                     stats.peers += t.get_peer_count();

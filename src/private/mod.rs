@@ -3,7 +3,7 @@ use tracker::peer::Delta;
 use tracker::announce::Announce;
 use response::error::ErrorResponse;
 
-use std::sync::{RwLock, Mutex};
+use parking_lot::{Mutex, RwLock};
 use std::collections::HashSet;
 use std::mem;
 
@@ -42,20 +42,14 @@ impl PrivateTracker {
     }
 
     pub fn add_announce(&self, delta: Delta) {
-        let mut deltas = match self.deltas.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        };
+        let mut deltas = self.deltas.lock();
         deltas.push(delta);
     }
 
     pub fn flush(&self) {
         let mut deltas = Vec::new();
         {
-            let mut old_deltas = match self.deltas.lock() {
-                Ok(guard) => guard,
-                Err(poisoned) => poisoned.into_inner(),
-            };
+            let mut old_deltas = self.deltas.lock();
             mem::swap(&mut deltas, &mut *old_deltas);
         }
         // Fill in implementation here
